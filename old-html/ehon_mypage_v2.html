@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>えほんのあと｜マイページ v2</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',sans-serif;background:#DFE9DB;padding:20px;min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:12px}
+h1{font-size:12px;color:#2E7D46;font-weight:500;letter-spacing:0.06em;opacity:0.8}
+
+/* ── Phone ── */
+.phone{width:360px;background:#F2F5F0;border-radius:28px;overflow:hidden;border:1px solid #C4D4BE;box-shadow:0 8px 32px rgba(0,0,0,0.10);display:flex;flex-direction:column;height:740px;position:relative}
+
+/* ── Header ── */
+.header{background:linear-gradient(160deg,#1E6B38 0%,#2E7D46 60%,#3A9156 100%);padding:14px 16px 18px;flex-shrink:0;position:relative;overflow:hidden;z-index:1}
+.header::after{content:'';position:absolute;right:-30px;top:-30px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,0.05)}
+.profile-row{display:flex;align-items:center;gap:12px}
+.avatar{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;border:2px solid rgba(255,255,255,0.3)}
+.profile-name{color:#fff;font-size:16px;font-weight:700;margin-bottom:2px}
+.profile-meta{color:rgba(255,255,255,0.75);font-size:11px;display:flex;gap:5px;flex-wrap:wrap}
+.profile-tag{background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:20px}
+.settings-btn{margin-left:auto;color:rgba(255,255,255,0.9);font-size:11px;font-weight:500;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);padding:6px 13px;border-radius:20px;cursor:pointer;font-family:inherit;flex-shrink:0;display:flex;align-items:center;gap:5px}
+.settings-btn svg{width:13px;height:13px;fill:rgba(255,255,255,0.9)}
+
+/* ── Scroll ── */
+.scroll{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:0}
+.scroll::-webkit-scrollbar{width:3px}
+.scroll::-webkit-scrollbar-thumb{background:#C3E6C8;border-radius:2px}
+
+/* ── Section ── */
+.section{padding:14px 14px 0}
+.section:last-child{padding-bottom:14px}
+.sec-label{font-size:10px;font-weight:700;color:#8A8A85;letter-spacing:0.08em;margin-bottom:8px}
+
+/* ── Stats ── */
+.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px}
+.stat-card{background:#fff;border:1px solid #DCE4D9;border-radius:14px;padding:12px 13px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;right:-8px;bottom:-8px;width:48px;height:48px;border-radius:50%;opacity:0.07}
+.stat-card.green::before{background:#4CAF6A}.stat-card.blue::before{background:#5BA8D4}.stat-card.orange::before{background:#F0943A}.stat-card.purple::before{background:#9B7EDB}
+.stat-num{font-size:26px;font-weight:700;line-height:1;margin-bottom:3px}
+.stat-card.green .stat-num{color:#2E7D46}.stat-card.blue .stat-num{color:#185FA5}.stat-card.orange .stat-num{color:#C16B18}.stat-card.purple .stat-num{color:#6B4BB5}
+.stat-unit{font-size:12px;font-weight:400}
+.stat-label{font-size:11px;color:#7A7873;margin-bottom:6px}
+.stat-sub{font-size:10px;color:#B4B2A9}
+.streak-card{background:linear-gradient(135deg,#1B4D2B 0%,#2E7D46 100%);border-radius:14px;padding:13px 15px;display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.streak-flame{font-size:28px;flex-shrink:0}
+.streak-num{font-size:22px;font-weight:700;color:#fff;line-height:1;margin-bottom:2px}
+.streak-label{font-size:12px;color:#A8D4B4}
+.streak-dots{display:flex;gap:4px;margin-top:6px}
+.s-dot{width:18px;height:6px;border-radius:3px}
+.s-dot.done{background:#A8D4B4}.s-dot.today{background:#fff}.s-dot.future{background:rgba(255,255,255,0.2)}
+.streak-msg{margin-left:auto;font-size:11px;color:rgba(255,255,255,0.75);text-align:right;line-height:1.5}
+
+/* ── Calendar ── */
+.calendar-card{background:#fff;border:1px solid #DCE4D9;border-radius:16px;overflow:hidden;margin-bottom:14px}
+.cal-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 0}
+.cal-month{font-size:14px;font-weight:700;color:#2C2C2A}
+.cal-nav{display:flex;gap:4px}
+.cal-nav-btn{width:28px;height:28px;border-radius:8px;border:1px solid #DCE4D9;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:#5A5A57}
+.cal-legend{display:flex;gap:10px;padding:7px 14px 5px;flex-wrap:wrap}
+.cal-legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:#8A8A85}
+/* セル */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-dow{text-align:center;font-size:10px;font-weight:500;color:#B4B2A9;padding:5px 0}
+.cal-dow:first-child{color:#E07070}.cal-dow:last-child{color:#7098C8}
+.cal-cell{display:flex;flex-direction:column;align-items:center;padding:3px 1px 4px;cursor:pointer;border-radius:8px;margin:1px;transition:background 0.12s;min-height:48px;position:relative}
+.cal-cell:active{background:#EAF5EC}
+.cal-num{font-size:11px;color:#2C2C2A;line-height:1;margin-bottom:3px;min-height:16px;display:flex;align-items:center;justify-content:center}
+.cal-num.sun{color:#E07070}.cal-num.sat{color:#7098C8}
+.cal-num.today-mark{background:#2E7D46;color:#fff;width:20px;height:20px;border-radius:50%;font-size:11px}
+.cal-badges{display:flex;flex-direction:column;align-items:center;gap:2px;width:100%}
+.cal-selected{background:#EAF5EC}
+
+/* 絵本サムネイル */
+.book-thumb-mini{
+  width:22px;height:22px;border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;flex-shrink:0;position:relative;
+  box-shadow:0 1px 3px rgba(0,0,0,0.12)
+}
+.book-thumb-mini .count-badge{
+  position:absolute;top:-4px;right:-5px;
+  background:#E07070;color:#fff;
+  font-size:8px;font-weight:700;
+  min-width:14px;height:14px;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;padding:0 2px;
+  border:1.5px solid #fff
+}
+
+/* シフトバッジ */
+.shift-badge{
+  font-size:9px;font-weight:700;
+  padding:1px 5px;border-radius:4px;
+  letter-spacing:0.02em;line-height:1.5
+}
+.shift-early{background:#FEF0E0;color:#B85C00}
+.shift-normal{background:#E4F0FC;color:#1560A8}
+.shift-late{background:#EDE8F8;color:#5B3DAA}
+
+/* 行事アイコン */
+.event-icon{font-size:14px;line-height:1}
+
+/* 凡例サンプル */
+.legend-book{width:14px;height:14px;border-radius:3px;background:#C3E6C8;display:flex;align-items:center;justify-content:center;font-size:9px;box-shadow:0 1px 2px rgba(0,0,0,0.10)}
+.legend-shift{font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;background:#E4F0FC;color:#1560A8}
+.legend-event{font-size:12px}
+
+/* ── Day detail panel ── */
+.day-panel{border-top:1px solid #F0EDE6}
+.dp-header{padding:10px 14px 6px;display:flex;align-items:center;justify-content:space-between}
+.dp-date{font-size:13px;font-weight:700;color:#2E7D46}
+.dp-add-btn{font-size:11px;color:#4CAF6A;background:#EAF5EC;border:none;padding:4px 10px;border-radius:20px;cursor:pointer;font-family:inherit}
+.dp-events{padding:0 14px 8px;display:flex;flex-direction:column;gap:5px}
+.dp-event{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#F8F6F2;border-radius:10px;cursor:pointer;transition:background 0.1s}
+.dp-event:active{background:#EAF5EC}
+.dp-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dp-event-name{font-size:13px;color:#2C2C2A;flex:1}
+.dp-event-arrow{color:#C0BDB5;font-size:14px}
+.dp-empty{font-size:12px;color:#B4B2A9;padding:6px 0}
+
+/* ── 今日のおすすめ ── */
+.rec-section{padding:0 14px 12px}
+.rec-ai-comment{background:#EAF5EC;border-radius:10px;padding:9px 12px;font-size:12px;color:#1B4D2B;line-height:1.6;margin-bottom:8px;display:flex;gap:7px;align-items:flex-start}
+.rec-ai-icon{font-size:16px;flex-shrink:0}
+.rec-label{font-size:10px;font-weight:700;color:#8A8A85;letter-spacing:0.06em;margin-bottom:6px}
+.rec-book-card{background:#fff;border:1px solid #DCE4D9;border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;margin-bottom:6px}
+.rec-book-card:last-child{margin-bottom:0}
+.rbc-thumb{width:38px;height:50px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+.rbc-info{flex:1;min-width:0}
+.rbc-title{font-size:13px;font-weight:700;color:#2C2C2A;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rbc-meta{font-size:10px;color:#8A8A85;margin-bottom:4px}
+.rbc-reason{font-size:11px;color:#5A5A57;line-height:1.5;margin-bottom:5px}
+.rbc-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+.rbc-tag{font-size:10px;padding:2px 7px;border-radius:20px}
+.rbc-tag-scene{background:#EAF5EC;color:#1B4D2B}
+.rbc-btns{display:flex;gap:5px}
+.rbc-btn-p{flex:1;font-size:11px;background:#2E7D46;color:#fff;border:none;border-radius:8px;padding:6px;cursor:pointer;font-family:inherit;font-weight:500}
+.rbc-btn-s{flex:1;font-size:11px;background:#F8F6F2;color:#5A5A57;border:1px solid #DCE4D9;border-radius:8px;padding:6px;cursor:pointer;font-family:inherit}
+
+/* ── Wishlist ── */
+.wishlist-card{background:#fff;border:1px solid #DCE4D9;border-radius:16px;overflow:hidden;margin-bottom:14px}
+.wl-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #F0EDE6}
+.wl-title{font-size:13px;font-weight:700;color:#2C2C2A;display:flex;align-items:center;gap:6px}
+.wl-count{font-size:11px;color:#4CAF6A;font-weight:500;background:#EAF5EC;padding:2px 8px;border-radius:20px}
+.wl-more{font-size:11px;color:#4CAF6A;cursor:pointer}
+.wl-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #F8F6F2}
+.wl-item:last-child{border-bottom:none}
+.wl-thumb{width:36px;height:46px;border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px}
+.wl-info{flex:1;min-width:0}
+.wl-book-title{font-size:13px;font-weight:500;color:#2C2C2A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.wl-reason{font-size:11px;color:#8A8A85}
+.wl-use-btn{font-size:11px;background:#EAF5EC;color:#1B4D2B;border:none;padding:5px 9px;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:500}
+.wl-del{font-size:14px;color:#D4D2CC;cursor:pointer;margin-left:6px}
+.wl-add-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;font-size:12px;color:#4CAF6A;cursor:pointer;background:#FAFAF8}
+
+/* ── BottomNav ── */
+.bottomnav{background:#fff;border-top:1px solid #E0E8DC;display:flex;padding:8px 0 12px;flex-shrink:0}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.nav-item svg{width:20px;height:20px;fill:#C0BDB5}
+.nav-item.active svg{fill:#2E7D46}
+.nav-lbl{font-size:10px;color:#8A8A85}
+.nav-item.active .nav-lbl{color:#2E7D46;font-weight:700}
+.nav-dot{width:4px;height:4px;border-radius:50%;background:#4CAF6A;margin:0 auto}
+
+/* ──────────────────────────────
+   OVERLAY PANELS (全画面スライド)
+   ────────────────────────────── */
+.overlay{position:absolute;inset:0;background:#F2F5F0;z-index:100;display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.28s cubic-bezier(0.4,0,0.2,1)}
+.overlay.open{transform:translateX(0)}
+.ov-header{background:linear-gradient(160deg,#1E6B38 0%,#2E7D46 100%);padding:14px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.ov-back{color:#A8D4B4;font-size:20px;cursor:pointer;line-height:1;flex-shrink:0;padding:2px 4px}
+.ov-title{color:#fff;font-size:15px;font-weight:700;flex:1}
+.ov-scroll{flex:1;overflow-y:auto;padding:14px}
+.ov-scroll::-webkit-scrollbar{width:3px}
+.ov-scroll::-webkit-scrollbar-thumb{background:#C3E6C8;border-radius:2px}
+.ov-footer{padding:12px 14px;background:#fff;border-top:1px solid #E0E8DC;flex-shrink:0}
+.ov-save-btn{width:100%;background:linear-gradient(135deg,#E8820A,#F0943A);color:#fff;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+.ov-cancel-btn{width:100%;background:transparent;color:#8A8A85;border:none;padding:10px;font-size:13px;cursor:pointer;font-family:inherit;margin-top:4px}
+
+/* ── 設定メニュー ── */
+.settings-menu{padding:14px;display:flex;flex-direction:column;gap:8px}
+.sm-card{background:#fff;border:1px solid #DCE4D9;border-radius:14px;overflow:hidden}
+.sm-item{display:flex;align-items:center;padding:14px 15px;border-bottom:1px solid #F8F6F2;cursor:pointer;gap:12px;transition:background 0.1s}
+.sm-item:last-child{border-bottom:none}
+.sm-item:active{background:#EAF5EC}
+.sm-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.sm-text{flex:1}
+.sm-label{font-size:14px;color:#2C2C2A;font-weight:500;margin-bottom:2px}
+.sm-sub{font-size:11px;color:#8A8A85}
+.sm-arrow{color:#C0BDB5;font-size:16px}
+
+/* ── フォーム共通 ── */
+.form-card{background:#fff;border:1px solid #DCE4D9;border-radius:14px;padding:14px;margin-bottom:10px}
+.form-section-label{font-size:10px;font-weight:700;color:#8A8A85;letter-spacing:0.07em;margin-bottom:10px}
+.form-row{margin-bottom:12px}
+.form-row:last-child{margin-bottom:0}
+.form-label{font-size:12px;font-weight:500;color:#5A5A57;margin-bottom:5px}
+.form-input{width:100%;border:1px solid #DCE4D9;border-radius:10px;padding:10px 13px;font-size:14px;color:#2C2C2A;background:#FAFAF8;outline:none;font-family:inherit}
+.form-input:focus{border-color:#4CAF6A;background:#fff}
+.form-select{width:100%;border:1px solid #DCE4D9;border-radius:10px;padding:10px 13px;font-size:14px;color:#2C2C2A;background:#FAFAF8;outline:none;font-family:inherit;appearance:none}
+.form-textarea{width:100%;border:1px solid #DCE4D9;border-radius:10px;padding:10px 13px;font-size:13px;color:#2C2C2A;background:#FAFAF8;outline:none;font-family:inherit;resize:none;line-height:1.7}
+.form-textarea:focus{border-color:#4CAF6A;background:#fff}
+.chip-group{display:flex;flex-wrap:wrap;gap:6px}
+.f-chip{font-size:12px;padding:7px 13px;border-radius:20px;border:1px solid #DCE4D9;background:#FAFAF8;color:#444441;cursor:pointer;user-select:none;transition:all 0.12s}
+.f-chip.on{background:#2E7D46;border-color:#2E7D46;color:#fff;font-weight:500}
+.f-chip.on-orange{background:#C16B18;border-color:#C16B18;color:#fff;font-weight:500}
+
+/* ── 通知日付ピッカー ── */
+.date-picker-row{display:flex;align-items:center;gap:8px;margin-top:6px}
+.dp-label{font-size:12px;color:#5A5A57}
+.dp-num{width:52px;border:1px solid #DCE4D9;border-radius:8px;padding:7px 10px;font-size:14px;color:#2C2C2A;background:#FAFAF8;outline:none;font-family:inherit;text-align:center}
+.dp-unit{font-size:12px;color:#5A5A57}
+
+/* ── カメラ読み取り ── */
+.camera-section{background:#EAF5EC;border:1px dashed #4CAF6A;border-radius:14px;padding:22px 16px;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;margin-bottom:10px}
+.cam-icon-wrap{width:56px;height:56px;background:#4CAF6A;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.cam-icon-wrap svg{width:28px;height:28px;fill:#fff}
+.cam-title{font-size:15px;font-weight:700;color:#1B4D2B}
+.cam-sub{font-size:12px;color:#639922;text-align:center;line-height:1.6}
+
+/* ── 読み取り確認カード ── */
+.scan-result-card{background:#fff;border:1px solid #DCE4D9;border-radius:14px;overflow:hidden;margin-bottom:10px}
+.src-header{background:#FEF3E8;padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #F0EDE6}
+.src-icon{font-size:16px}
+.src-label{font-size:12px;font-weight:700;color:#854F0B}
+.src-badge{font-size:10px;background:#F0943A;color:#fff;padding:2px 8px;border-radius:20px;margin-left:auto}
+.src-body{padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.src-del{font-size:11px;color:#E07070;cursor:pointer;text-align:right;margin-top:4px}
+
+/* ── カレンダー表示設定 ── */
+.display-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #F8F6F2}
+.display-toggle-row:last-child{border-bottom:none}
+.dt-label{font-size:14px;color:#2C2C2A}
+.dt-sub{font-size:11px;color:#B4B2A9;margin-top:1px}
+.toggle{width:38px;height:22px;border-radius:11px;position:relative;cursor:pointer;transition:background 0.2s;flex-shrink:0}
+.toggle.on{background:#4CAF6A}
+.toggle.off{background:#D4D2CC}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform 0.2s}
+.toggle.on::after{transform:translateX(16px)}
+
+/* ── イベント詳細 ── */
+.event-type-btns{display:flex;gap:6px}
+.etb{flex:1;padding:9px;border-radius:10px;border:1px solid #DCE4D9;background:#FAFAF8;font-size:13px;color:#444441;cursor:pointer;text-align:center;font-family:inherit;transition:all 0.12s}
+.etb.sel{background:#2E7D46;border-color:#2E7D46;color:#fff;font-weight:500}
+.del-btn{width:100%;background:#FEF0F0;color:#E07070;border:1px solid #F0C0C0;border-radius:12px;padding:12px;font-size:14px;cursor:pointer;font-family:inherit;font-weight:500;margin-top:8px}
+
+/* ── トースト ── */
+.toast{position:absolute;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:#1B4D2B;color:#fff;font-size:13px;font-weight:500;padding:10px 20px;border-radius:20px;opacity:0;transition:all 0.3s;pointer-events:none;white-space:nowrap;z-index:200}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<h1>えほんのあと｜マイページ v2</h1>
+
+<div class="phone" id="phone">
+
+  <!-- ── Header ── -->
+  <div class="header">
+    <div class="profile-row">
+      <div class="avatar">🌿</div>
+      <div>
+        <div class="profile-name">さくら 先生</div>
+        <div class="profile-meta">
+          <span class="profile-tag">保育士</span>
+          <span class="profile-tag">3歳児担任</span>
+          <span class="profile-tag">主任</span>
+        </div>
+      </div>
+      <button class="settings-btn" onclick="openOverlay('ov-settings')">
+        <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        設定
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Main scroll ── -->
+  <div class="scroll">
+
+    <div class="section">
+      <div class="sec-label">今月の実績</div>
+      <div class="streak-card">
+        <div class="streak-flame">🔥</div>
+        <div>
+          <div class="streak-num">12日 <span style="font-size:14px;font-weight:400;color:#A8D4B4">連続記録中</span></div>
+          <div class="streak-dots">
+            <div class="s-dot done"></div><div class="s-dot done"></div><div class="s-dot done"></div><div class="s-dot done"></div><div class="s-dot done"></div><div class="s-dot today"></div><div class="s-dot future"></div>
+          </div>
+          <div class="streak-label" style="margin-top:4px">今週も記録できています</div>
+        </div>
+        <div class="streak-msg">先月より<br><strong style="color:#fff;font-size:14px">+3日</strong></div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card green"><div class="stat-label">今月の記録数</div><div class="stat-num">18<span class="stat-unit">件</span></div><div class="stat-sub">先月比 +4件</div></div>
+        <div class="stat-card blue"><div class="stat-label">読んだ冊数</div><div class="stat-num">14<span class="stat-unit">冊</span></div><div class="stat-sub">今年度 計62冊</div></div>
+        <div class="stat-card orange"><div class="stat-label">AIレポート閲覧</div><div class="stat-num">9<span class="stat-unit">回</span></div><div class="stat-sub">今月</div></div>
+        <div class="stat-card purple"><div class="stat-label">記録した日数</div><div class="stat-num">16<span class="stat-unit">日</span></div><div class="stat-sub">今月の稼働日中</div></div>
+      </div>
+    </div>
+
+    <!-- ── カレンダー ── -->
+    <div class="section">
+      <div class="sec-label">カレンダー</div>
+      <div class="calendar-card">
+        <div class="cal-header">
+          <div class="cal-month">2025年4月</div>
+          <div class="cal-nav"><div class="cal-nav-btn">‹</div><div class="cal-nav-btn">›</div></div>
+        </div>
+        <div class="cal-legend">
+          <div class="cal-legend-item"><div class="legend-book">📗</div>絵本</div>
+          <div class="cal-legend-item"><div class="legend-shift">普</div>シフト</div>
+          <div class="cal-legend-item"><div class="legend-event">🎏</div>行事</div>
+        </div>
+        <div class="cal-grid">
+          <div class="cal-dow">日</div><div class="cal-dow">月</div><div class="cal-dow">火</div><div class="cal-dow">水</div><div class="cal-dow">木</div><div class="cal-dow">金</div><div class="cal-dow">土</div>
+          <div class="cal-cell"></div>
+          <div class="cal-cell" onclick="selectDay(this,'4月1日（火）',[{t:'絵本記録：ぐりとぐら',d:'book',book:{emoji:'📗',bg:'#C3E6C8',reactions:['😊笑い','🎯集中']}},{t:'行事：入園式',d:'event',icon:'🌸'}],'入園式の日です。初めて絵本を読む場面が多いので、シンプルなくりかえし絵本がおすすめです。')">
+            <div class="cal-num">1</div>
+            <div class="cal-badges">
+              <div class="book-thumb-mini" style="background:#C3E6C8">📗</div>
+              <div class="event-icon">🌸</div>
+            </div>
+          </div>
+          <div class="cal-cell" onclick="selectDay(this,'4月2日（水）',[{t:'絵本記録：だるまさんが',d:'book',book:{emoji:'📕',bg:'#F9C8C8',reactions:['🔁もう一回','😊笑い']}}],'通常保育の日です。')">
+            <div class="cal-num">2</div>
+            <div class="cal-badges"><div class="book-thumb-mini" style="background:#F9C8C8">📕</div></div>
+          </div>
+          <div class="cal-cell" onclick="selectDay(this,'4月3日（木）',[{t:'行事：保護者懇談会',d:'event',icon:'👨‍👩‍👧'}],'保護者懇談会の前後で子どもたちが落ち着けるような絵本がおすすめです。')">
+            <div class="cal-num">3</div>
+            <div class="cal-badges"><div class="event-icon">👨‍👩‍👧</div></div>
+          </div>
+          <div class="cal-cell" onclick="selectDay(this,'4月4日（金）',[{t:'絵本記録：はらぺこあおむし',d:'book',book:{emoji:'📗',bg:'#C3E6C8',reactions:['💬言葉を返した','🎯集中']}},{t:'シフト：早番',d:'shift',shift:'早'}],'')">
+            <div class="cal-num">4</div>
+            <div class="cal-badges">
+              <div class="book-thumb-mini" style="background:#C3E6C8">📗</div>
+              <div class="shift-badge shift-early">早</div>
+            </div>
+          </div>
+          <div class="cal-cell"><div class="cal-num sat">5</div></div>
+          <div class="cal-cell"><div class="cal-num sun">6</div></div>
+          <div class="cal-cell" onclick="selectDay(this,'4月7日（月）',[{t:'絵本記録：おおきなかぶ',d:'book',book:{emoji:'📒',bg:'#F5EAB0',reactions:['💬言葉を返した','😊笑い']}},{t:'シフト：早番',d:'shift',shift:'早'}],'')">
+            <div class="cal-num">7</div>
+            <div class="cal-badges">
+              <div class="book-thumb-mini" style="background:#F5EAB0">📒</div>
+              <div class="shift-badge shift-early">早</div>
+            </div>
+          </div>
+          <div class="cal-cell" onclick="selectDay(this,'4月8日（火）',[{t:'絵本記録：スイミー',d:'book',book:{emoji:'📘',bg:'#C3DCF0',reactions:['🌙静かな余韻','🎯集中']}}],'')">
+            <div class="cal-num">8</div>
+            <div class="cal-badges"><div class="book-thumb-mini" style="background:#C3DCF0">📘</div></div>
+          </div>
+          <div class="cal-cell"><div class="cal-num">9</div></div>
+          <div class="cal-cell" onclick="selectDay(this,'4月10日（木）',[{t:'絵本記録：いないいないばあ',d:'book',book:{emoji:'📕',bg:'#F9C8C8',reactions:['😊笑い','🔁もう一回']}}],'')">
+            <div class="cal-num">10</div>
+            <div class="cal-badges"><div class="book-thumb-mini" style="background:#F9C8C8">📕</div></div>
+          </div>
+          <div class="cal-cell" onclick="selectDay(this,'4月11日（金）',[{t:'行事：誕生会',d:'event',icon:'🎂'},{t:'絵本記録：ぐるんぱのようちえん',d:'book',book:{emoji:'📙',bg:'#F9DDC0',reactions:['💬話が広がった','🎯集中']}}],'誕生会の日です。主役の子どもを迎える絵本や、みんなで楽しめる絵本がおすすめです。')">
+            <div class="cal-num">11</div>
+            <div class="cal-badges">
+              <div class="book-thumb-mini" style="background:#F9DDC0">📙</div>
+              <div class="event-icon">🎂</div>
+            </div>
+          </div>
+          <div class="cal-cell"><div class="cal-num sat">12</div></div>
+          <div class="cal-cell"><div class="cal-num sun">13</div></div>
+          <div class="cal-cell" onclick="selectDay(this,'4月14日（月）',[{t:'シフト：遅番',d:'shift',shift:'遅'}],'')">
+            <div class="cal-num">14</div>
+            <div class="cal-badges"><div class="shift-badge shift-late">遅</div></div>
+          </div>
+          <div class="cal-cell" onclick="selectDay(this,'4月15日（火）',[{t:'絵本記録：ももんちゃん',d:'book',book:{emoji:'📗',bg:'#C3E6C8',reactions:['😊笑い','🎭真似した']}}],'')">
+            <div class="cal-num">15</div>
+            <div class="cal-badges"><div class="book-thumb-mini" style="background:#C3E6C8">📗</div></div>
+          </div>
+          <div class="cal-cell" onclick="selectDay(this,'4月16日（水）',[{t:'絵本記録：しろくまちゃん',d:'book',book:{emoji:'📙',bg:'#F9DDC0',reactions:['🎯集中','😊笑い']}}],'')">
+            <div class="cal-num">16</div>
+            <div class="cal-badges"><div class="book-thumb-mini" style="background:#F9DDC0">📙</div></div>
+          </div>
+          <div class="cal-cell"><div class="cal-num">17</div></div>
+          <div class="cal-cell" onclick="selectDay(this,'4月18日（金）',[{t:'絵本記録：おつきさまこんにちは',d:'book',book:{emoji:'📘',bg:'#C3DCF0',reactions:['🌙静かな余韻','🎯集中']}}],'')">
+            <div class="cal-num">18</div>
+            <div class="cal-badges"><div class="book-thumb-mini" style="background:#C3DCF0">📘</div></div>
+          </div>
+          <div class="cal-cell"><div class="cal-num sat">19</div></div>
+          <div class="cal-cell"><div class="cal-num sun">20</div></div>
+          <div class="cal-cell" onclick="selectDay(this,'4月21日（月）',[{t:'行事：こいのぼり制作開始',d:'event',icon:'🎏'}],'こいのぼり制作の初日です。制作への導入として、こいのぼりや川・魚をテーマにした絵本が効果的です。')">
+            <div class="cal-num">21</div>
+            <div class="cal-badges"><div class="event-icon">🎏</div></div>
+          </div>
+          <div class="cal-cell" onclick="selectDay(this,'4月22日（火）',[{t:'絵本記録：ぐりとぐら',d:'book',book:{emoji:'📗',bg:'#C3E6C8',reactions:['😊笑い','✏️制作意欲','🎯集中']}}],'')">
+            <div class="cal-num">22</div>
+            <div class="cal-badges"><div class="book-thumb-mini" style="background:#C3E6C8">📗</div></div>
+          </div>
+          <div class="cal-cell" onclick="selectDay(this,'4月23日（水）',[{t:'絵本記録：からすのパンやさん',d:'book',book:{emoji:'📙',bg:'#F9DDC0',reactions:['💬言葉を返した','😊笑い']}},{t:'絵本記録：おおきなかぶ',d:'book',book:{emoji:'📒',bg:'#F5EAB0',reactions:['💬言葉を返した']}}],'')">
+            <div class="cal-num">23</div>
+            <div class="cal-badges">
+              <div class="book-thumb-mini" style="background:#F9DDC0">📙<div class="count-badge">+1</div></div>
+            </div>
+          </div>
+          <div class="cal-cell cal-selected" id="today-cell" onclick="selectDay(this,'4月24日（木）',[{t:'絵本記録：スイミー',d:'book',book:{emoji:'📘',bg:'#C3DCF0',reactions:['🌙静かな余韻','🎯集中']}},{t:'シフト：普通番',d:'shift',shift:'普'}],'制作活動（こいのぼり）の途中です。静かな余韻のある絵本か、海・魚テーマの絵本が午睡前に合います。')">
+            <div class="cal-num today-mark">24</div>
+            <div class="cal-badges">
+              <div class="book-thumb-mini" style="background:#C3DCF0">📘</div>
+              <div class="shift-badge shift-normal">普</div>
+            </div>
+          </div>
+          <div class="cal-cell"><div class="cal-num">25</div></div>
+          <div class="cal-cell"><div class="cal-num sat">26</div></div>
+          <div class="cal-cell"><div class="cal-num sun">27</div></div>
+          <div class="cal-cell"><div class="cal-num">28</div></div>
+          <div class="cal-cell" onclick="selectDay(this,'4月29日（火・祝）',[{t:'行事：昭和の日',d:'event',icon:'🏛️'}],'昭和の日前後は、日本の文化や歴史につながる絵本が合います。')">
+            <div class="cal-num">29</div>
+            <div class="cal-badges"><div class="event-icon">🏛️</div></div>
+          </div>
+          <div class="cal-cell"><div class="cal-num">30</div></div>
+          <div class="cal-cell"></div><div class="cal-cell"></div><div class="cal-cell"></div>
+        </div>
+
+        <!-- 日付詳細 -->
+        <div class="day-panel" id="day-panel">
+          <div class="dp-header">
+            <div class="dp-date" id="dp-date">4月24日（木）</div>
+            <button class="dp-add-btn" onclick="openOverlay('ov-event-add')">＋ 予定を追加</button>
+          </div>
+          <div class="dp-events" id="dp-events">
+            <div class="dp-event" onclick="openEventDetail('スイミー','book')">
+              <div class="book-thumb-mini" style="background:#C3DCF0;margin-right:2px">📘</div>
+              <div style="flex:1">
+                <div class="dp-event-name">スイミー</div>
+                <div style="display:flex;gap:4px;margin-top:3px;flex-wrap:wrap">
+                  <span style="font-size:10px;background:#EAF5EC;color:#1B4D2B;padding:1px 6px;border-radius:10px">🌙静かな余韻</span>
+                  <span style="font-size:10px;background:#EAF5EC;color:#1B4D2B;padding:1px 6px;border-radius:10px">🎯集中</span>
+                </div>
+              </div>
+              <div class="dp-event-arrow">›</div>
+            </div>
+            <div class="dp-event" onclick="openEventDetail('シフト：普通番','shift')">
+              <div class="shift-badge shift-normal" style="margin-right:6px;font-size:11px;padding:2px 8px">普通番</div>
+              <div class="dp-event-name" style="color:#5A5A57">シフト</div>
+              <div class="dp-event-arrow">›</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 今日のおすすめ絵本 -->
+        <div class="rec-section" id="rec-section">
+          <div class="rec-ai-comment" id="rec-ai-comment">
+            <div class="rec-ai-icon">✦</div>
+            <div id="rec-ai-text">制作活動（こいのぼり）の途中です。静かな余韻のある絵本か、海・魚テーマの絵本が午睡前に合います。</div>
+          </div>
+          <div class="rec-label">📚 今日のおすすめ絵本（3歳児クラス）</div>
+          <div class="rec-book-card">
+            <div class="rbc-thumb" style="background:#C3DCF0">📘</div>
+            <div class="rbc-info">
+              <div class="rbc-title">スイミー</div>
+              <div class="rbc-meta">レオ・レオーニ / 好学社 ・ 3〜5歳</div>
+              <div class="rbc-reason">海の世界のイメージがこいのぼり制作と自然につながります。読後に「自分ならどうする?」の問いかけが生まれやすい絵本です。</div>
+              <div class="rbc-tags"><span class="rbc-tag rbc-tag-scene">活動導入</span><span class="rbc-tag rbc-tag-scene">帰りの会</span></div>
+              <div class="rbc-btns"><button class="rbc-btn-p">記録に使う</button><button class="rbc-btn-s">読みたいに追加</button></div>
+            </div>
+          </div>
+          <div class="rec-book-card">
+            <div class="rbc-thumb" style="background:#C3E6C8">📗</div>
+            <div class="rbc-info">
+              <div class="rbc-title">おつきさまこんにちは</div>
+              <div class="rbc-meta">林明子 / 福音館書店 ・ 2〜4歳</div>
+              <div class="rbc-reason">静かでやさしいテンポが午睡前に合います。繰り返しの言葉で子どもたちが自然に声を合わせられます。</div>
+              <div class="rbc-tags"><span class="rbc-tag rbc-tag-scene">午睡前</span></div>
+              <div class="rbc-btns"><button class="rbc-btn-p">記録に使う</button><button class="rbc-btn-s">読みたいに追加</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 読みたいリスト -->
+    <div class="section">
+      <div class="sec-label">読みたいリスト</div>
+      <div class="wishlist-card">
+        <div class="wl-header">
+          <div class="wl-title">📌 ウィッシュリスト <span class="wl-count">4冊</span></div>
+          <div class="wl-more">すべて見る</div>
+        </div>
+        <div class="wl-item"><div class="wl-thumb" style="background:#C3E6C8">📗</div><div class="wl-info"><div class="wl-book-title">おおきなかぶ</div><div class="wl-reason">AIおすすめ・行事前</div></div><button class="wl-use-btn">購入する</button><div class="wl-del">×</div></div>
+        <div class="wl-item"><div class="wl-thumb" style="background:#C3DCF0">📘</div><div class="wl-info"><div class="wl-book-title">からすのパンやさん</div><div class="wl-reason">自分で追加 · 4月18日</div></div><button class="wl-use-btn">購入する</button><div class="wl-del">×</div></div>
+        <div class="wl-add-btn">＋ 絵本を追加する</div>
+      </div>
+    </div>
+
+    <div style="height:4px"></div>
+  </div><!-- /scroll -->
+
+  <!-- BottomNav -->
+  <div class="bottomnav">
+    <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg><div class="nav-lbl">ホーム</div></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"/></svg><div class="nav-lbl">AIレポート</div></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg><div class="nav-lbl">検索</div></div>
+    <div class="nav-item active"><svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 1 1 0 10A5 5 0 0 1 12 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/></svg><div class="nav-lbl">マイページ</div><div class="nav-dot"></div></div>
+  </div>
+
+  <!-- ══════════════════════════
+       OVERLAY: 設定メニュー
+  ══════════════════════════ -->
+  <div class="overlay" id="ov-settings">
+    <div class="ov-header">
+      <div class="ov-back" onclick="closeOverlay('ov-settings')">‹</div>
+      <div class="ov-title">設定</div>
+    </div>
+    <div class="settings-menu">
+      <div class="sm-card">
+        <div class="sm-item" onclick="openOverlay('ov-profile')">
+          <div class="sm-icon" style="background:#EAF5EC">👤</div>
+          <div class="sm-text"><div class="sm-label">プロフィール設定</div><div class="sm-sub">名前・職種・担当クラス・役職</div></div>
+          <div class="sm-arrow">›</div>
+        </div>
+        <div class="sm-item" onclick="openOverlay('ov-notify')">
+          <div class="sm-icon" style="background:#FEF3E8">🔔</div>
+          <div class="sm-text"><div class="sm-label">通知頻度設定</div><div class="sm-sub">行事前の通知タイミングを選ぶ</div></div>
+          <div class="sm-arrow">›</div>
+        </div>
+      </div>
+      <div class="sm-card">
+        <div class="sm-item" onclick="openOverlay('ov-cal-input')">
+          <div class="sm-icon" style="background:#E6F3FB">📷</div>
+          <div class="sm-text"><div class="sm-label">カレンダー入力設定</div><div class="sm-sub">写真読み取り・手動で行事・シフトを登録</div></div>
+          <div class="sm-arrow">›</div>
+        </div>
+        <div class="sm-item" onclick="openOverlay('ov-cal-display')">
+          <div class="sm-icon" style="background:#EAF5EC">📅</div>
+          <div class="sm-text"><div class="sm-label">カレンダー表示設定</div><div class="sm-sub">表示する項目を選ぶ</div></div>
+          <div class="sm-arrow">›</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       OVERLAY: プロフィール設定
+  ══════════════════════════ -->
+  <div class="overlay" id="ov-profile">
+    <div class="ov-header">
+      <div class="ov-back" onclick="closeOverlay('ov-profile')">‹</div>
+      <div class="ov-title">プロフィール設定</div>
+    </div>
+    <div class="ov-scroll">
+      <div class="form-card">
+        <div class="form-section-label">基本情報</div>
+        <div class="form-row"><div class="form-label">名前</div><input class="form-input" value="さくら" placeholder="名前を入力"></div>
+        <div class="form-row"><div class="form-label">職種</div>
+          <select class="form-select">
+            <option selected>保育士</option><option>幼稚園教諭</option><option>保育教諭</option><option>支援員</option><option>その他</option>
+          </select>
+        </div>
+        <div class="form-row"><div class="form-label">担当クラス</div>
+          <div class="chip-group">
+            <div class="f-chip" onclick="togF(this,'on')">0歳児</div><div class="f-chip" onclick="togF(this,'on')">1歳児</div><div class="f-chip" onclick="togF(this,'on')">2歳児</div>
+            <div class="f-chip on" onclick="togF(this,'on')">3歳児</div><div class="f-chip" onclick="togF(this,'on')">4歳児</div><div class="f-chip" onclick="togF(this,'on')">5歳児</div><div class="f-chip" onclick="togF(this,'on')">混合</div>
+          </div>
+        </div>
+        <div class="form-row"><div class="form-label">役職</div>
+          <select class="form-select">
+            <option>一般</option><option selected>主任</option><option>副主任</option><option>施設長</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="ov-footer">
+      <button class="ov-save-btn" onclick="save('ov-profile')">保存する</button>
+      <button class="ov-cancel-btn" onclick="closeOverlay('ov-profile')">キャンセル</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       OVERLAY: 通知頻度設定
+  ══════════════════════════ -->
+  <div class="overlay" id="ov-notify">
+    <div class="ov-header">
+      <div class="ov-back" onclick="closeOverlay('ov-notify')">‹</div>
+      <div class="ov-title">通知頻度設定</div>
+    </div>
+    <div class="ov-scroll">
+      <div class="form-card">
+        <div class="form-section-label">行事前に通知するタイミング（複数選択可）</div>
+        <div class="form-row">
+          <div class="chip-group">
+            <div class="f-chip" onclick="togF(this,'on')">前月の指定日</div>
+            <div class="f-chip on" onclick="togF(this,'on')">1ヶ月前</div>
+            <div class="f-chip on" onclick="togF(this,'on')">2週間前</div>
+            <div class="f-chip" onclick="togF(this,'on')">1週間前</div>
+            <div class="f-chip" onclick="togF(this,'on')">3日前</div>
+            <div class="f-chip" onclick="togF(this,'on')">当日</div>
+          </div>
+        </div>
+        <div class="form-row" id="prev-month-row" style="margin-top:4px">
+          <div class="form-label">前月の指定日</div>
+          <div class="date-picker-row">
+            <div class="dp-label">毎月</div>
+            <input class="dp-num" type="number" value="25" min="1" max="28">
+            <div class="dp-unit">日に通知</div>
+          </div>
+          <div style="font-size:11px;color:#B4B2A9;margin-top:6px">例：3月25日 → 4月の行事を通知</div>
+        </div>
+      </div>
+      <div class="form-card" style="background:#EAF5EC;border-color:#B8D8BC">
+        <div style="font-size:12px;color:#1B4D2B;line-height:1.7">💡 「1ヶ月前」「2週間前」の組み合わせが、絵本の選書と読み始めのタイミングに合いやすいです。</div>
+      </div>
+    </div>
+    <div class="ov-footer">
+      <button class="ov-save-btn" onclick="save('ov-notify')">保存する</button>
+      <button class="ov-cancel-btn" onclick="closeOverlay('ov-notify')">キャンセル</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       OVERLAY: カレンダー入力設定
+  ══════════════════════════ -->
+  <div class="overlay" id="ov-cal-input">
+    <div class="ov-header">
+      <div class="ov-back" onclick="closeOverlay('ov-cal-input')">‹</div>
+      <div class="ov-title">カレンダー入力設定</div>
+    </div>
+    <div class="ov-scroll" id="cal-input-scroll">
+
+      <!-- 写真読み取り -->
+      <div class="camera-section" onclick="showScanResult()">
+        <div class="cam-icon-wrap">
+          <svg viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5zM20 4h-3.17L15 2H9L7.17 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/></svg>
+        </div>
+        <div class="cam-title">写真から読み取る</div>
+        <div class="cam-sub">園だより・年間行事予定・月案・シフト表<br>の写真を撮ると行事・シフトを自動認識します</div>
+      </div>
+
+      <!-- 読み取り確認（タップ後に表示） -->
+      <div id="scan-confirm" style="display:none">
+        <div style="font-size:11px;font-weight:700;color:#854F0B;background:#FEF3E8;padding:8px 12px;border-radius:10px;margin-bottom:8px;display:flex;gap:6px;align-items:center">
+          <span>📋</span> 読み取り結果を確認してください。内容を編集してから登録できます。
+        </div>
+        <div class="scan-result-card">
+          <div class="src-header"><div class="src-icon">🎏</div><div class="src-label">読み取った予定</div><div class="src-badge">行事</div></div>
+          <div class="src-body">
+            <div class="form-row"><div class="form-label">日付</div><input class="form-input" value="2025年5月5日（月）"></div>
+            <div class="form-row"><div class="form-label">予定名</div><input class="form-input" value="こどもの日" id="scan-event-name"></div>
+            <div class="form-row"><div class="form-label">種類</div>
+              <div class="event-type-btns">
+                <button class="etb sel" onclick="selType(this)">行事</button>
+                <button class="etb" onclick="selType(this)">シフト</button>
+                <button class="etb" onclick="selType(this)">その他</button>
+              </div>
+            </div>
+            <div class="form-row"><div class="form-label">通知設定</div>
+              <div class="chip-group">
+                <div class="f-chip on" onclick="togF(this,'on')">2週間前</div>
+                <div class="f-chip" onclick="togF(this,'on')">1週間前</div>
+                <div class="f-chip" onclick="togF(this,'on')">3日前</div>
+              </div>
+            </div>
+            <div class="form-row"><div class="form-label">メモ</div><textarea class="form-textarea" rows="2" placeholder="メモを追加..."></textarea></div>
+            <button class="ov-save-btn" onclick="addToCalendar()">カレンダーに追加</button>
+            <div class="src-del" onclick="this.closest('.scan-result-card').remove()">削除する</div>
+          </div>
+        </div>
+        <div class="scan-result-card">
+          <div class="src-header"><div class="src-icon">👔</div><div class="src-label">読み取った予定</div><div class="src-badge" style="background:#5BA8D4">シフト</div></div>
+          <div class="src-body">
+            <div class="form-row"><div class="form-label">日付</div><input class="form-input" value="2025年5月7日（水）"></div>
+            <div class="form-row"><div class="form-label">予定名</div><input class="form-input" value="早番"></div>
+            <div class="form-row"><div class="form-label">種類</div>
+              <div class="event-type-btns">
+                <button class="etb" onclick="selType(this)">行事</button>
+                <button class="etb sel" onclick="selType(this)">シフト</button>
+                <button class="etb" onclick="selType(this)">その他</button>
+              </div>
+            </div>
+            <div class="form-row"><div class="form-label">メモ</div><textarea class="form-textarea" rows="2" placeholder="メモを追加..."></textarea></div>
+            <button class="ov-save-btn" onclick="addToCalendar()">カレンダーに追加</button>
+            <div class="src-del" onclick="this.closest('.scan-result-card').remove()">削除する</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 手動追加 -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><div style="flex:1;height:1px;background:#DCE4D9"></div><div style="font-size:11px;color:#B4B2A9">または手動で追加</div><div style="flex:1;height:1px;background:#DCE4D9"></div></div>
+      <div class="form-card">
+        <div class="form-section-label">予定を手動で追加</div>
+        <div class="form-row"><div class="form-label">日付</div><input class="form-input" type="date" value="2025-04-24"></div>
+        <div class="form-row"><div class="form-label">予定名</div><input class="form-input" placeholder="例：こいのぼり制作開始"></div>
+        <div class="form-row"><div class="form-label">種類</div>
+          <div class="event-type-btns">
+            <button class="etb sel" onclick="selType(this)">行事</button>
+            <button class="etb" onclick="selType(this)">シフト</button>
+            <button class="etb" onclick="selType(this)">その他</button>
+          </div>
+        </div>
+        <div class="form-row"><div class="form-label">通知</div>
+          <div class="chip-group">
+            <div class="f-chip" onclick="togF(this,'on')">2週間前</div>
+            <div class="f-chip" onclick="togF(this,'on')">1週間前</div>
+            <div class="f-chip" onclick="togF(this,'on')">3日前</div>
+            <div class="f-chip" onclick="togF(this,'on')">当日</div>
+          </div>
+        </div>
+        <div class="form-row"><div class="form-label">メモ（任意）</div><textarea class="form-textarea" rows="2" placeholder="メモを追加..."></textarea></div>
+      </div>
+    </div>
+    <div class="ov-footer">
+      <button class="ov-save-btn" onclick="addToCalendar()">カレンダーに追加</button>
+      <button class="ov-cancel-btn" onclick="closeOverlay('ov-cal-input')">キャンセル</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       OVERLAY: カレンダー表示設定
+  ══════════════════════════ -->
+  <div class="overlay" id="ov-cal-display">
+    <div class="ov-header">
+      <div class="ov-back" onclick="closeOverlay('ov-cal-display')">‹</div>
+      <div class="ov-title">カレンダー表示設定</div>
+    </div>
+    <div class="ov-scroll">
+      <div class="form-card">
+        <div class="form-section-label">カレンダーに表示する項目</div>
+        <div class="display-toggle-row">
+          <div><div class="dt-label">📗 読んだ絵本</div><div class="dt-sub">記録した日に緑ドットを表示</div></div>
+          <div class="toggle on" onclick="togToggle(this)"></div>
+        </div>
+        <div class="display-toggle-row">
+          <div><div class="dt-label">🎏 行事</div><div class="dt-sub">登録した行事をオレンジドットで表示</div></div>
+          <div class="toggle on" onclick="togToggle(this)"></div>
+        </div>
+        <div class="display-toggle-row">
+          <div><div class="dt-label">👔 シフト</div><div class="dt-sub">シフト情報を青ドットで表示</div></div>
+          <div class="toggle on" onclick="togToggle(this)"></div>
+        </div>
+        <div class="display-toggle-row">
+          <div><div class="dt-label">🔔 通知予定</div><div class="dt-sub">通知が来る日をカレンダーに表示</div></div>
+          <div class="toggle off" onclick="togToggle(this)"></div>
+        </div>
+      </div>
+    </div>
+    <div class="ov-footer">
+      <button class="ov-save-btn" onclick="save('ov-cal-display')">保存する</button>
+      <button class="ov-cancel-btn" onclick="closeOverlay('ov-cal-display')">キャンセル</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       OVERLAY: 予定詳細・編集
+  ══════════════════════════ -->
+  <div class="overlay" id="ov-event-detail">
+    <div class="ov-header">
+      <div class="ov-back" onclick="closeOverlay('ov-event-detail')">‹</div>
+      <div class="ov-title" id="ov-event-title">予定の詳細</div>
+    </div>
+    <div class="ov-scroll">
+      <div class="form-card">
+        <div class="form-row"><div class="form-label">日付</div><input class="form-input" id="ev-date" value="2025年4月24日（木）"></div>
+        <div class="form-row"><div class="form-label">予定名</div><input class="form-input" id="ev-name" value="こいのぼり制作開始"></div>
+        <div class="form-row"><div class="form-label">種類</div>
+          <div class="event-type-btns" id="ev-type-btns">
+            <button class="etb sel" onclick="selType(this)">行事</button>
+            <button class="etb" onclick="selType(this)">シフト</button>
+            <button class="etb" onclick="selType(this)">その他</button>
+          </div>
+        </div>
+        <div class="form-row"><div class="form-label">通知設定</div>
+          <div class="chip-group">
+            <div class="f-chip on" onclick="togF(this,'on')">2週間前</div>
+            <div class="f-chip" onclick="togF(this,'on')">1週間前</div>
+            <div class="f-chip" onclick="togF(this,'on')">3日前</div>
+            <div class="f-chip" onclick="togF(this,'on')">当日</div>
+          </div>
+        </div>
+        <div class="form-row"><div class="form-label">メモ</div><textarea class="form-textarea" rows="3" placeholder="メモを追加...">こいのぼり制作開始日。魚・川テーマの絵本を導入に使いたい。</textarea></div>
+      </div>
+      <button class="del-btn">この予定を削除する</button>
+    </div>
+    <div class="ov-footer">
+      <button class="ov-save-btn" onclick="save('ov-event-detail')">保存する</button>
+      <button class="ov-cancel-btn" onclick="closeOverlay('ov-event-detail')">キャンセル</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════
+       OVERLAY: 予定追加
+  ══════════════════════════ -->
+  <div class="overlay" id="ov-event-add">
+    <div class="ov-header">
+      <div class="ov-back" onclick="closeOverlay('ov-event-add')">‹</div>
+      <div class="ov-title">予定を追加</div>
+    </div>
+    <div class="ov-scroll">
+      <div class="form-card">
+        <div class="form-row"><div class="form-label">日付</div><input class="form-input" value="2025年4月24日（木）"></div>
+        <div class="form-row"><div class="form-label">予定名</div><input class="form-input" placeholder="例：こいのぼり制作"></div>
+        <div class="form-row"><div class="form-label">種類</div>
+          <div class="event-type-btns">
+            <button class="etb sel" onclick="selType(this)">行事</button>
+            <button class="etb" onclick="selType(this)">シフト</button>
+            <button class="etb" onclick="selType(this)">その他</button>
+          </div>
+        </div>
+        <div class="form-row"><div class="form-label">通知</div>
+          <div class="chip-group">
+            <div class="f-chip" onclick="togF(this,'on')">2週間前</div>
+            <div class="f-chip" onclick="togF(this,'on')">1週間前</div>
+            <div class="f-chip" onclick="togF(this,'on')">3日前</div>
+            <div class="f-chip" onclick="togF(this,'on')">当日</div>
+          </div>
+        </div>
+        <div class="form-row"><div class="form-label">メモ（任意）</div><textarea class="form-textarea" rows="2" placeholder="メモを追加..."></textarea></div>
+      </div>
+    </div>
+    <div class="ov-footer">
+      <button class="ov-save-btn" onclick="addToCalendar()">カレンダーに追加</button>
+      <button class="ov-cancel-btn" onclick="closeOverlay('ov-event-add')">キャンセル</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+</div><!-- /phone -->
+
+<script>
+// ── オーバーレイ制御 ──
+function openOverlay(id){ document.getElementById(id).classList.add('open') }
+function closeOverlay(id){ document.getElementById(id).classList.remove('open') }
+
+// ── カレンダー日付選択 ──
+let selectedCell = document.getElementById('today-cell');
+
+const REC_DATA = {
+  'こいのぼり制作開始': {
+    comment:'こいのぼり制作の初日です。魚・川・海をテーマにした絵本が制作への導入に効果的です。',
+    books:[
+      {emoji:'📘',bg:'#C3DCF0',title:'スイミー',meta:'レオ・レオーニ / 好学社 ・ 3〜5歳',reason:'海の世界が制作イメージと自然につながります。制作前の導入として最適です。',scenes:['活動導入']},
+      {emoji:'📗',bg:'#C3E6C8',title:'さかなはさかな',meta:'レオ・レオーニ / 好学社 ・ 3〜5歳',reason:'川と魚の世界を美しく描いています。こいのぼりへのイメージを広げられます。',scenes:['活動導入','帰りの会']},
+    ]
+  },
+  '誕生会': {
+    comment:'誕生会の日です。主役を迎える気持ちが育つ絵本や、みんなでお祝いできる絵本がおすすめです。',
+    books:[
+      {emoji:'📙',bg:'#F9DDC0',title:'ハッピーバースデー',meta:'3〜5歳',reason:'お誕生日の喜びをみんなで共有できる絵本です。',scenes:['朝の会','帰りの会']},
+    ]
+  },
+  default: {
+    comment:'この日の予定に合わせて、おすすめの絵本を表示しています。',
+    books:[
+      {emoji:'📗',bg:'#C3E6C8',title:'おつきさまこんにちは',meta:'林明子 / 福音館書店 ・ 2〜4歳',reason:'静かでやさしいテンポが午睡前に合います。',scenes:['午睡前']},
+      {emoji:'📘',bg:'#C3DCF0',title:'ぐりとぐら',meta:'中川李枝子 / 福音館書店 ・ 3〜5歳',reason:'友だちと一緒に楽しめる絵本です。',scenes:['活動導入']},
+    ]
+  }
+};
+
+function selectDay(el, dateStr, events, aiComment){
+  if(selectedCell) selectedCell.classList.remove('cal-selected');
+  el.classList.add('cal-selected');
+  selectedCell = el;
+
+  document.getElementById('dp-date').textContent = dateStr;
+  const evEl = document.getElementById('dp-events');
+
+  if(!events || !events.length){
+    evEl.innerHTML = '<div class="dp-empty">予定はありません</div>';
+  } else {
+    evEl.innerHTML = events.map(e => {
+      if(e.d === 'book' && e.book){
+        const b = e.book;
+        const name = e.t.replace('絵本記録：','');
+        const tags = (b.reactions||[]).slice(0,3).map(r=>
+          `<span style="font-size:10px;background:#EAF5EC;color:#1B4D2B;padding:1px 6px;border-radius:10px">${r}</span>`
+        ).join('');
+        return `<div class="dp-event" onclick="openEventDetail('${name}','book')">
+          <div class="book-thumb-mini" style="background:${b.bg};margin-right:4px">${b.emoji}</div>
+          <div style="flex:1;min-width:0">
+            <div class="dp-event-name">${name}</div>
+            <div style="display:flex;gap:4px;margin-top:3px;flex-wrap:wrap">${tags}</div>
+          </div>
+          <div class="dp-event-arrow">›</div>
+        </div>`;
+      } else if(e.d === 'shift'){
+        const shiftMap = {'早':'早番 shift-early','普':'普通番 shift-normal','遅':'遅番 shift-late'};
+        const [label, cls] = (shiftMap[e.shift]||'普通番 shift-normal').split(' ');
+        return `<div class="dp-event" onclick="openEventDetail('シフト：${label}','shift')">
+          <div class="shift-badge ${cls}" style="margin-right:8px;font-size:11px;padding:2px 9px">${label}</div>
+          <div class="dp-event-name" style="color:#5A5A57">シフト</div>
+          <div class="dp-event-arrow">›</div>
+        </div>`;
+      } else if(e.d === 'event'){
+        const name = e.t.replace('行事：','');
+        return `<div class="dp-event" onclick="openEventDetail('${name}','event')">
+          <div style="font-size:20px;margin-right:8px;line-height:1">${e.icon||'📅'}</div>
+          <div class="dp-event-name">${name}</div>
+          <div class="dp-event-arrow">›</div>
+        </div>`;
+      }
+      return '';
+    }).join('');
+  }
+
+  // おすすめ更新
+  const eventName = events.find(ev=>ev.d==='event');
+  let recKey = 'default';
+  if(eventName){
+    for(const k in REC_DATA){ if(eventName.t.includes(k)){ recKey=k; break; } }
+  }
+  const rec = REC_DATA[recKey];
+  document.getElementById('rec-ai-text').textContent = aiComment || rec.comment;
+  const recSection = document.getElementById('rec-section');
+  const booksHTML = rec.books.map(b=>`
+    <div class="rec-book-card">
+      <div class="rbc-thumb" style="background:${b.bg}">${b.emoji}</div>
+      <div class="rbc-info">
+        <div class="rbc-title">${b.title}</div>
+        <div class="rbc-meta">${b.meta}</div>
+        <div class="rbc-reason">${b.reason}</div>
+        <div class="rbc-tags">${b.scenes.map(s=>`<span class="rbc-tag rbc-tag-scene">${s}</span>`).join('')}</div>
+        <div class="rbc-btns"><button class="rbc-btn-p">記録に使う</button><button class="rbc-btn-s">読みたいに追加</button></div>
+      </div>
+    </div>`).join('');
+  const oldCards = recSection.querySelectorAll('.rec-book-card');
+  oldCards.forEach(c=>c.remove());
+  recSection.insertAdjacentHTML('beforeend', booksHTML);
+}
+
+// ── 予定詳細 ──
+function openEventDetail(name, type){
+  document.getElementById('ov-event-title').textContent = name;
+  document.getElementById('ev-name').value = name.replace(/^(絵本記録：|行事：|シフト：)/,'');
+  const btns = document.getElementById('ev-type-btns').querySelectorAll('.etb');
+  btns.forEach(b=>b.classList.remove('sel'));
+  if(type==='event') btns[0].classList.add('sel');
+  else if(type==='shift') btns[1].classList.add('sel');
+  else btns[0].classList.add('sel');
+  openOverlay('ov-event-detail');
+}
+
+// ── 写真読み取り結果表示 ──
+function showScanResult(){
+  const el = document.getElementById('scan-confirm');
+  el.style.display = el.style.display==='none' ? 'block' : 'none';
+  if(el.style.display!=='none') document.getElementById('cal-input-scroll').scrollTop=0;
+}
+
+// ── ユーティリティ ──
+function togF(el,cls){ el.classList.toggle(cls) }
+function togToggle(el){ el.classList.toggle('on'); el.classList.toggle('off') }
+function selType(el){ el.closest('.event-type-btns').querySelectorAll('.etb').forEach(b=>b.classList.remove('sel')); el.classList.add('sel') }
+
+function save(ovId){
+  closeOverlay(ovId);
+  showToast('✓ 保存しました');
+}
+function addToCalendar(){
+  closeOverlay('ov-event-add');
+  closeOverlay('ov-cal-input');
+  showToast('✓ カレンダーに追加しました');
+}
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>

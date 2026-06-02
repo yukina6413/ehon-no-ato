@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>えほんのあと｜完了・AIレポート画面</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;background:#E8EDE6;padding:20px;min-height:100vh}
+h1{text-align:center;font-size:13px;color:#2E7D46;margin-bottom:14px;font-weight:500;letter-spacing:0.05em}
+
+.nav-row{display:flex;gap:8px;justify-content:center;margin-bottom:16px;flex-wrap:wrap}
+.nav-btn{font-size:12px;padding:6px 16px;border-radius:20px;border:1px solid #B4D4BC;background:#fff;color:#5F5E5A;cursor:pointer}
+.nav-btn.active{background:#2E7D46;color:#fff;border-color:#2E7D46;font-weight:500}
+
+.phone{width:360px;margin:0 auto;background:#F4F6F2;border-radius:24px;overflow:hidden;border:1px solid #C8D4C4;box-shadow:0 4px 20px rgba(0,0,0,0.08);display:none;flex-direction:column;min-height:680px}
+.phone.show{display:flex}
+
+/* topbar */
+.topbar{background:#2E7D46;padding:12px 16px 14px}
+.topbar-row{display:flex;justify-content:space-between;align-items:center}
+.tb-back{color:#A8D4B4;font-size:13px;cursor:pointer}
+.tb-title{color:#fff;font-size:14px;font-weight:500}
+.tb-blank{width:40px}
+
+/* scroll */
+.scroll{flex:1;overflow-y:auto;padding:14px 14px 8px;display:flex;flex-direction:column;gap:10px}
+
+/* bottom */
+.bottom-fixed{background:#fff;border-top:1px solid #E0E8DC;padding:11px 14px 14px;display:flex;flex-direction:column;gap:7px}
+.btn-primary{background:#4CAF6A;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:500;cursor:pointer;width:100%;font-family:inherit}
+.btn-ai{background:#2E7D46;color:#fff;border:none;border-radius:12px;padding:13px;font-size:13px;font-weight:500;cursor:pointer;width:100%;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-ai svg{width:14px;height:14px;fill:#A8D4B4}
+.btn-row{display:flex;gap:8px}
+.btn-sec{flex:1;background:#fff;color:#5F5E5A;border:1px solid #C8C6C0;border-radius:10px;padding:10px;font-size:12px;cursor:pointer;font-family:inherit}
+
+/* ===== 完了画面 ===== */
+.done-hero{background:#2E7D46;padding:24px 20px 20px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.done-check{width:48px;height:48px;border-radius:50%;background:#A8D4B4;display:flex;align-items:center;justify-content:center}
+.done-check svg{width:26px;height:26px;fill:#1B4D2B}
+.done-title{color:#fff;font-size:18px;font-weight:500}
+.done-sub{color:#A8D4B4;font-size:12px}
+
+.ai-summary-card{background:#fff;border:1px solid #DCE4D9;border-radius:14px;overflow:hidden}
+.ai-card-head{background:#EAF5EC;padding:10px 14px;display:flex;align-items:center;gap:8px}
+.ai-sparkle{width:24px;height:24px;border-radius:50%;background:#2E7D46;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ai-sparkle svg{width:13px;height:13px;fill:#A8D4B4}
+.ai-card-label{font-size:12px;font-weight:500;color:#1B4D2B}
+.ai-card-book{font-size:11px;color:#5F5E5A;margin-left:auto}
+.ai-card-body{padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.ai-block{}
+.ai-block-label{font-size:10px;font-weight:500;color:#8A8A85;letter-spacing:0.06em;margin-bottom:4px}
+.ai-block-text{font-size:13px;color:#2C2C2A;line-height:1.65}
+.ai-divider{height:1px;background:#ECE9E2}
+.next-tag{display:inline-flex;align-items:center;gap:5px;background:#FEF3E8;color:#854F0B;font-size:11px;font-weight:500;padding:4px 10px;border-radius:20px}
+.next-tag svg{width:12px;height:12px;fill:#F0943A}
+.proposal-box{background:#FEF3E8;border-radius:10px;padding:10px 12px;font-size:13px;color:#2C2C2A;line-height:1.65}
+
+/* ===== AIレポート画面 ===== */
+.report-topbar{background:#2E7D46;padding:12px 16px 0}
+.report-topbar-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.report-tabs{display:flex;overflow-x:auto;gap:0;padding-bottom:0}
+.report-tab{font-size:12px;padding:8px 14px;color:rgba(255,255,255,0.6);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;flex-shrink:0}
+.report-tab.active{color:#fff;font-weight:500;border-bottom:2px solid #fff}
+
+.report-content{display:none}
+.report-content.show{display:flex;flex-direction:column;gap:10px}
+
+.book-hero{background:#fff;border:1px solid #DCE4D9;border-radius:14px;padding:14px;display:flex;gap:12px;align-items:flex-start}
+.book-cover-lg{width:56px;height:72px;border-radius:6px;background:#C3E6C8;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.book-cover-lg svg{width:28px;height:28px;fill:#2E7D46}
+.book-meta{flex:1;min-width:0}
+.book-title-lg{font-size:15px;font-weight:500;color:#2C2C2A;margin-bottom:3px}
+.book-author{font-size:12px;color:#7A7873;margin-bottom:8px}
+.badge-row{display:flex;flex-wrap:wrap;gap:5px}
+.badge{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:500}
+.badge-class{background:#E6F3FB;color:#0C447C}
+.badge-scene{background:#EAF5EC;color:#1B4D2B}
+.badge-date{background:#F4F6F2;color:#5F5E5A}
+
+.report-card{background:#fff;border:1px solid #DCE4D9;border-radius:14px;padding:13px 14px;display:flex;flex-direction:column;gap:8px}
+.report-card-label{font-size:10px;font-weight:500;color:#2E7D46;letter-spacing:0.06em}
+.report-card-text{font-size:13px;color:#2C2C2A;line-height:1.65}
+.report-card-hint{font-size:11px;color:#8A8A85;line-height:1.55;margin-top:2px}
+
+.rec-books{display:flex;flex-direction:column;gap:7px}
+.rec-book-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:#F4F6F2;border-radius:10px;cursor:pointer}
+.rec-book-num{width:20px;height:20px;border-radius:50%;background:#C3E6C8;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:#1B4D2B;flex-shrink:0}
+.rec-book-info{flex:1;min-width:0}
+.rec-book-title{font-size:13px;color:#2C2C2A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-book-reason{font-size:11px;color:#7A7873;margin-top:1px}
+.rec-book-arrow{color:#C0BDB5;font-size:14px}
+
+.trend-row{display:flex;gap:8px;flex-wrap:wrap}
+.trend-chip{font-size:12px;padding:6px 12px;border-radius:20px;background:#EAF5EC;color:#1B4D2B;font-weight:500}
+.trend-chip.orange{background:#FEF3E8;color:#854F0B}
+.trend-chip.blue{background:#E6F3FB;color:#0C447C}
+
+/* simple bar chart */
+.chart-wrap{padding:4px 0}
+.chart-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.chart-label{font-size:11px;color:#5F5E5A;width:56px;flex-shrink:0;text-align:right}
+.chart-bar-bg{flex:1;height:16px;background:#F0F4EE;border-radius:4px;overflow:hidden}
+.chart-bar{height:100%;border-radius:4px;background:#4CAF6A;transition:width 0.6s ease}
+.chart-val{font-size:11px;color:#5F5E5A;width:28px;flex-shrink:0}
+
+.section-label-sm{font-size:10px;font-weight:500;color:#8A8A85;letter-spacing:0.06em;margin-bottom:-4px}
+
+.insight-box{background:#EAF5EC;border-radius:10px;padding:11px 13px}
+.insight-label{font-size:10px;font-weight:500;color:#2E7D46;letter-spacing:0.05em;margin-bottom:4px}
+.insight-text{font-size:13px;color:#1B4D2B;line-height:1.65}
+
+.empty-state{display:flex;flex-direction:column;align-items:center;gap:8px;padding:32px 16px;color:#B4B2A9}
+.empty-state svg{width:36px;height:36px;fill:#D4D2CC}
+.empty-state p{font-size:13px;text-align:center;line-height:1.6}
+
+/* bottomnav */
+.bottomnav{background:#fff;border-top:1px solid #E0E8DC;display:flex;padding:8px 0 10px}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.nav-item svg{width:20px;height:20px;fill:#B4B2A9}
+.nav-item.active svg{fill:#2E7D46}
+.nav-lbl{font-size:10px;color:#7A7873}
+.nav-item.active .nav-lbl{color:#2E7D46;font-weight:500}
+.nav-dot{width:4px;height:4px;border-radius:50%;background:#4CAF6A;margin:0 auto}
+.class-chip{font-size:12px;padding:6px 12px;border-radius:20px;cursor:pointer;border:1px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.7);white-space:nowrap;user-select:none;transition:all 0.12s}
+.class-chip.active-chip{background:#fff;color:#1B4D2B;border-color:#fff;font-weight:500}
+</style>
+</head>
+<body>
+<h1>えほんのあと｜記録完了・AIレポート 設計モックアップ</h1>
+
+<div class="nav-row">
+  <button class="nav-btn active" onclick="showScreen('done',this)">記録完了後画面</button>
+  <button class="nav-btn" onclick="showScreen('report',this)">AIレポート画面</button>
+</div>
+
+<!-- ==============================
+     記録完了後画面
+     ============================== -->
+<div class="phone show" id="done">
+  <div class="done-hero">
+    <div class="done-check">
+      <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+    </div>
+    <div class="done-title">記録しました</div>
+    <div class="done-sub">ぐりとぐら ・ 4月24日 ・ 3歳児</div>
+  </div>
+
+  <div class="scroll">
+
+    <div class="ai-summary-card">
+      <div class="ai-card-head">
+        <div class="ai-sparkle">
+          <svg viewBox="0 0 24 24"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"/></svg>
+        </div>
+        <div class="ai-card-label">AIからの保育レポート</div>
+        <div class="ai-card-book">今すぐ読める</div>
+      </div>
+      <div class="ai-card-body">
+
+        <div class="ai-block">
+          <div class="ai-block-label">TODAY'S REACTION</div>
+          <div class="ai-block-text">笑いながら集中して聞いていた子どもたち。「ぐりとぐら食べたい！」という言葉が出るなど、<strong>食への興味と友だちとの共感</strong>が自然に引き出されていました。</div>
+        </div>
+
+        <div class="ai-divider"></div>
+
+        <div class="ai-block">
+          <div class="ai-block-label">WHAT IT MEANS</div>
+          <div class="ai-block-text">この時期の3歳児にとって、「一緒に作る・食べる」というイメージは仲間意識を育てます。クッキングや制作へのつなぎ場面として効果的です。</div>
+        </div>
+
+        <div class="ai-divider"></div>
+
+        <div class="ai-block">
+          <div class="ai-block-label">NEXT STEP</div>
+          <div class="next-tag">
+            <svg viewBox="0 0 24 24"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"/></svg>
+            次の保育提案
+          </div>
+          <div class="proposal-box" style="margin-top:6px">
+            卵を使った共同制作や、友だちと一緒に作るクッキング活動を取り入れてみるとよいかもしれません。「何を作ろうか」と子どもに問いかけることで、主体性が引き出されやすくなるでしょう。
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bottom-fixed">
+    <button class="btn-ai" onclick="showScreen('report',document.querySelectorAll('.nav-btn')[1])">
+      <svg viewBox="0 0 24 24"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"/></svg>
+      AIレポートをくわしく読む
+    </button>
+    <div class="btn-row">
+      <button class="btn-sec">もう1件記録する</button>
+      <button class="btn-sec">ホームへ戻る</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==============================
+     AIレポート画面
+     ============================== -->
+<div class="phone" id="report">
+  <div class="report-topbar">
+    <div class="report-topbar-row">
+      <span class="tb-back">‹ 戻る</span>
+      <span class="tb-title">AIレポート</span>
+      <span class="tb-blank"></span>
+    </div>
+    <!-- 軸切り替え -->
+    <div style="display:flex;gap:0;margin-bottom:10px;background:rgba(0,0,0,0.15);border-radius:8px;padding:3px;width:fit-content">
+      <div id="axis-time" onclick="switchAxis('time')" style="font-size:12px;padding:5px 16px;border-radius:6px;cursor:pointer;color:#fff;background:#2E7D46;font-weight:500;white-space:nowrap">時間軸</div>
+      <div id="axis-class" onclick="switchAxis('class')" style="font-size:12px;padding:5px 16px;border-radius:6px;cursor:pointer;color:rgba(255,255,255,0.65);white-space:nowrap">クラス軸</div>
+    </div>
+    <!-- 時間軸タブ -->
+    <div id="time-tabs" class="report-tabs">
+      <div class="report-tab active" onclick="showTab('tab-book',this)">本ごと</div>
+      <div class="report-tab" onclick="showTab('tab-day',this)">その日</div>
+      <div class="report-tab" onclick="showTab('tab-week',this)">週</div>
+      <div class="report-tab" onclick="showTab('tab-month',this)">月</div>
+      <div class="report-tab" onclick="showTab('tab-year',this)">年度</div>
+    </div>
+    <!-- クラス軸セレクター -->
+    <div id="class-selector" style="display:none;padding-bottom:12px">
+      <div style="font-size:11px;color:rgba(255,255,255,0.65);margin-bottom:6px">クラスを選んでください</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <div class="class-chip active-chip" onclick="selectClass(this,'0歳児')">0歳児</div>
+        <div class="class-chip" onclick="selectClass(this,'1歳児')">1歳児</div>
+        <div class="class-chip" onclick="selectClass(this,'2歳児')">2歳児</div>
+        <div class="class-chip" onclick="selectClass(this,'3歳児')">3歳児</div>
+        <div class="class-chip" onclick="selectClass(this,'4歳児')">4歳児</div>
+        <div class="class-chip" onclick="selectClass(this,'5歳児')">5歳児</div>
+        <div class="class-chip" onclick="selectClass(this,'混合')">混合</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll">
+
+    <!-- 本ごと -->
+    <div class="report-content show" id="tab-book">
+      <div class="book-hero">
+        <div class="book-cover-lg">
+          <svg viewBox="0 0 24 24"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
+        </div>
+        <div class="book-meta">
+          <div class="book-title-lg">ぐりとぐら</div>
+          <div class="book-author">中川李枝子 / 福音館書店</div>
+          <div class="badge-row">
+            <span class="badge badge-date">4月22日</span>
+            <span class="badge badge-class">3歳児</span>
+            <span class="badge badge-scene">活動導入・製作</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="report-card">
+        <div class="report-card-label">AIによる反応要約</div>
+        <div class="report-card-text">笑い・集中・言葉の返しが重なった、エンゲージメントの高い読み聞かせでした。「もう一回」の声はなかったものの、制作コーナーへ自発的に移行した様子が印象的です。</div>
+      </div>
+
+      <div class="report-card">
+        <div class="report-card-label">保育者への視点</div>
+        <div class="report-card-text">この絵本が持つ「共同作業の楽しさ」は3歳児の協調性の育ちと親和性が高いかもしれません。今後も「一緒に何かを作る」場面への橋渡しとして活用してみるとよいでしょう。</div>
+        <div class="report-card-hint">※ AIによる参考情報です。実際の観察を優先してください。</div>
+      </div>
+
+      <div class="report-card">
+        <div class="report-card-label">次の保育提案</div>
+        <div class="proposal-box">卵を使った共同制作や、食材をテーマにしたごっこ遊びがおすすめです。「ぐりとぐらのフライパン」を作る工作も、盛り上がりやすい活動のひとつかもしれません。</div>
+      </div>
+
+      <div class="report-card">
+        <div class="report-card-label">次におすすめの絵本</div>
+        <div class="rec-books">
+          <div class="rec-book-row">
+            <div class="rec-book-num">1</div>
+            <div class="rec-book-info">
+              <div class="rec-book-title">しろくまちゃんのほっとけーき</div>
+              <div class="rec-book-reason">食・作る楽しさのつながり</div>
+            </div>
+            <div class="rec-book-arrow">›</div>
+          </div>
+          <div class="rec-book-row">
+            <div class="rec-book-num">2</div>
+            <div class="rec-book-info">
+              <div class="rec-book-title">からすのパンやさん</div>
+              <div class="rec-book-reason">仲間・食・創造のテーマ共通</div>
+            </div>
+            <div class="rec-book-arrow">›</div>
+          </div>
+          <div class="rec-book-row">
+            <div class="rec-book-num">3</div>
+            <div class="rec-book-info">
+              <div class="rec-book-title">おおきなかぶ</div>
+              <div class="rec-book-reason">みんなで力を合わせる体験へ</div>
+            </div>
+            <div class="rec-book-arrow">›</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- その日 -->
+    <div class="report-content" id="tab-day">
+      <div class="report-card">
+        <div class="report-card-label">4月24日（木）のまとめ</div>
+        <div class="trend-row">
+          <div class="trend-chip">3歳児クラス</div>
+          <div class="trend-chip">2冊</div>
+          <div class="trend-chip orange">活動導入</div>
+        </div>
+      </div>
+      <div class="report-card">
+        <div class="report-card-label">この日の子どもの反応傾向</div>
+        <div class="report-card-text">2冊とも「笑い」「集中」が共通して見られました。午前の活動導入タイミングが特に効果的だった様子です。</div>
+      </div>
+      <div class="report-card">
+        <div class="report-card-label">印象的だった場面</div>
+        <div class="report-card-text">「ぐりとぐら」では絵本を読み終えてすぐ制作コーナーへ移動する子が複数いました。絵本と遊びがスムーズにつながった一日です。</div>
+      </div>
+      <div class="insight-box">
+        <div class="insight-label">次に試したい方向性</div>
+        <div class="insight-text">「食べ物・作る」テーマが続いています。来週は「動き」や「音」がメインの絵本を取り入れてみると、変化がつきやすくなるかもしれません。</div>
+      </div>
+    </div>
+
+    <!-- 週 -->
+    <div class="report-content" id="tab-week">
+      <div class="report-card">
+        <div class="report-card-label">4/21〜4/27 よく読んだテーマ</div>
+        <div class="trend-row">
+          <div class="trend-chip">食べ物</div>
+          <div class="trend-chip">動物</div>
+          <div class="trend-chip orange">春・自然</div>
+          <div class="trend-chip blue">友だち</div>
+        </div>
+      </div>
+      <div class="report-card">
+        <div class="report-card-label">子どもの反応傾向（この週）</div>
+        <div class="report-card-text">「笑った」「集中していた」の割合が高く、落ち着いた雰囲気での読み聞かせが多かった週です。「もう一回を求めた」は少なめでした。</div>
+      </div>
+      <div class="report-card">
+        <div class="report-card-label">印象的だった絵本</div>
+        <div class="rec-book-row" style="background:#F4F6F2;border-radius:10px;padding:10px 12px">
+          <div class="rec-book-num" style="background:#C3E6C8">★</div>
+          <div class="rec-book-info">
+            <div class="rec-book-title">ぐりとぐら</div>
+            <div class="rec-book-reason">反応の幅が最も広かった</div>
+          </div>
+        </div>
+      </div>
+      <div class="insight-box">
+        <div class="insight-label">次に試したい方向性</div>
+        <div class="insight-text">今週は「静かに楽しむ」系の絵本が多めでした。来週は体を動かしたくなる絵本や、声に出して楽しめるリズム絵本を試してみるとよいかもしれません。</div>
+      </div>
+    </div>
+
+    <!-- 月 -->
+    <div class="report-content" id="tab-month">
+      <div class="report-card">
+        <div class="report-card-label">4月 よく読んだテーマ</div>
+        <div class="trend-row">
+          <div class="trend-chip">春・出会い</div>
+          <div class="trend-chip">食べ物</div>
+          <div class="trend-chip blue">動物</div>
+          <div class="trend-chip orange">行事（入園）</div>
+        </div>
+      </div>
+      <div class="report-card">
+        <div class="report-card-label">子どもの反応傾向（4月）</div>
+        <div class="report-card-text">月前半は緊張気味で反応が薄い場面も。後半になるにつれ「笑った」「言葉を返した」の反応が増えています。クラスに慣れてきた変化が記録から見えます。</div>
+      </div>
+      <div class="report-card">
+        <div class="report-card-label">印象的だった絵本</div>
+        <div class="rec-books">
+          <div class="rec-book-row">
+            <div class="rec-book-num" style="background:#C3E6C8">1</div>
+            <div class="rec-book-info">
+              <div class="rec-book-title">ぐりとぐら</div>
+              <div class="rec-book-reason">最多の反応・言葉の返しあり</div>
+            </div>
+          </div>
+          <div class="rec-book-row">
+            <div class="rec-book-num" style="background:#C3E6C8">2</div>
+            <div class="rec-book-info">
+              <div class="rec-book-title">だるまさんが</div>
+              <div class="rec-book-reason">「もう一回」が一番多かった</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="insight-box">
+        <div class="insight-label">5月に試したい方向性</div>
+        <div class="insight-text">子どもたちが場に慣れてきたようです。少し長めの物語絵本や、問いかけが生まれる絵本へ広げてみるタイミングかもしれません。</div>
+      </div>
+    </div>
+
+    <!-- 年度 -->
+    <div class="report-content" id="tab-year">
+      <div class="report-card">
+        <div class="report-card-label">2024年度 読んだ絵本の傾向</div>
+        <div class="chart-wrap">
+          <div class="chart-bar-row">
+            <div class="chart-label">食べ物</div>
+            <div class="chart-bar-bg"><div class="chart-bar" style="width:82%"></div></div>
+            <div class="chart-val">18冊</div>
+          </div>
+          <div class="chart-bar-row">
+            <div class="chart-label">動物</div>
+            <div class="chart-bar-bg"><div class="chart-bar" style="width:68%;background:#5BA8D4"></div></div>
+            <div class="chart-val">15冊</div>
+          </div>
+          <div class="chart-bar-row">
+            <div class="chart-label">行事</div>
+            <div class="chart-bar-bg"><div class="chart-bar" style="width:50%;background:#F0943A"></div></div>
+            <div class="chart-val">11冊</div>
+          </div>
+          <div class="chart-bar-row">
+            <div class="chart-label">生活習慣</div>
+            <div class="chart-bar-bg"><div class="chart-bar" style="width:36%"></div></div>
+            <div class="chart-val">8冊</div>
+          </div>
+          <div class="chart-bar-row">
+            <div class="chart-label">友だち</div>
+            <div class="chart-bar-bg"><div class="chart-bar" style="width:27%;background:#5BA8D4"></div></div>
+            <div class="chart-val">6冊</div>
+          </div>
+        </div>
+      </div>
+      <div class="report-card">
+        <div class="report-card-label">子どもの反応の変化（年間）</div>
+        <div class="report-card-text">4〜6月は「集中」が多く、10月以降は「言葉を返した」「もう一回」が増えています。発達の深まりと絵本への親しみが記録から読み取れます。</div>
+      </div>
+      <div class="report-card">
+        <div class="report-card-label">年度の印象的な絵本 TOP3</div>
+        <div class="rec-books">
+          <div class="rec-book-row">
+            <div class="rec-book-num" style="background:#C3E6C8">1</div>
+            <div class="rec-book-info"><div class="rec-book-title">ぐりとぐら</div><div class="rec-book-reason">年間最多・反応の質も高い</div></div>
+          </div>
+          <div class="rec-book-row">
+            <div class="rec-book-num" style="background:#C3E6C8">2</div>
+            <div class="rec-book-info"><div class="rec-book-title">はらぺこあおむし</div><div class="rec-book-reason">リピート率No.1</div></div>
+          </div>
+          <div class="rec-book-row">
+            <div class="rec-book-num" style="background:#C3E6C8">3</div>
+            <div class="rec-book-info"><div class="rec-book-title">だるまさんが</div><div class="rec-book-reason">「もう一回」が最も多かった</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="insight-box">
+        <div class="insight-label">来年度に向けて</div>
+        <div class="insight-text">「友だち」テーマの絵本が少なかった年度でした。来年度の4〜5月に意識的に取り入れてみると、クラス作りと連動しやすくなるかもしれません。</div>
+      </div>
+    </div>
+
+  </div><!-- /scroll -->
+
+  <!-- クラス軸レポート（時間軸スクロールエリアの外側に独立） -->
+  <div id="class-content" style="display:none;flex:1;overflow-y:auto;padding:14px 14px 8px;flex-direction:column;gap:10px">
+    <div class="report-card">
+      <div id="class-report-head" style="font-size:13px;font-weight:500;color:#2C2C2A;margin-bottom:6px">0歳児クラスのレポート</div>
+      <div class="trend-row">
+        <div class="trend-chip" id="cr-count">今月 6冊</div>
+        <div class="trend-chip orange" id="cr-scene">午睡前が多め</div>
+      </div>
+    </div>
+    <div class="report-card">
+      <div class="report-card-label">よく読んだテーマ</div>
+      <div class="trend-row" id="cr-themes">
+        <div class="trend-chip">動物</div>
+        <div class="trend-chip">くりかえし</div>
+        <div class="trend-chip blue">生活習慣</div>
+      </div>
+    </div>
+    <div class="report-card">
+      <div class="report-card-label">子どもの反応傾向</div>
+      <div class="report-card-text" id="cr-reaction">「集中していた」「真似した」の反応が多く見られます。くりかえしの言葉や動きがある絵本への反応がよい傾向です。</div>
+    </div>
+    <div class="report-card">
+      <div class="report-card-label">このクラスで印象的だった絵本</div>
+      <div class="rec-books" id="cr-books">
+        <div class="rec-book-row">
+          <div class="rec-book-num" style="background:#C3E6C8">1</div>
+          <div class="rec-book-info"><div class="rec-book-title">いないいないばあ</div><div class="rec-book-reason">笑いが最多・繰り返し喜ぶ</div></div>
+        </div>
+        <div class="rec-book-row">
+          <div class="rec-book-num" style="background:#C3E6C8">2</div>
+          <div class="rec-book-info"><div class="rec-book-title">じゃあじゃあびりびり</div><div class="rec-book-reason">真似・言葉返しあり</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="insight-box">
+      <div class="insight-label" id="cr-next-label">このクラスへの次の提案</div>
+      <div class="insight-text" id="cr-next-text">くりかえしの言葉がある絵本がよく合っているようです。次は少し展開のある「だるまさんが」シリーズを試してみるとよいかもしれません。</div>
+    </div>
+  </div>
+
+  <div class="bottomnav">
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <div class="nav-lbl">ホーム</div>
+    </div>
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"/></svg>
+      <div class="nav-lbl">AIレポート</div>
+      <div class="nav-dot"></div>
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <div class="nav-lbl">検索</div>
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 1 1 0 10A5 5 0 0 1 12 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/></svg>
+      <div class="nav-lbl">マイページ</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showScreen(id, btn){
+  document.querySelectorAll('.phone').forEach(p=>p.classList.remove('show'));
+  document.getElementById(id).classList.add('show');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function showTab(id, tab){
+  document.querySelectorAll('.report-content').forEach(c=>c.classList.remove('show'));
+  document.getElementById(id).classList.add('show');
+  document.querySelectorAll('.report-tab').forEach(t=>t.classList.remove('active'));
+  tab.classList.add('active');
+}
+
+// 軸切り替え
+function switchAxis(axis){
+  const isClass = axis==='class';
+  // ヘッダー軸ボタン
+  document.getElementById('axis-time').style.cssText=isClass
+    ?'font-size:12px;padding:5px 16px;border-radius:6px;cursor:pointer;color:rgba(255,255,255,0.65);white-space:nowrap'
+    :'font-size:12px;padding:5px 16px;border-radius:6px;cursor:pointer;color:#fff;background:#2E7D46;font-weight:500;white-space:nowrap';
+  document.getElementById('axis-class').style.cssText=isClass
+    ?'font-size:12px;padding:5px 16px;border-radius:6px;cursor:pointer;color:#fff;background:#2E7D46;font-weight:500;white-space:nowrap'
+    :'font-size:12px;padding:5px 16px;border-radius:6px;cursor:pointer;color:rgba(255,255,255,0.65);white-space:nowrap';
+  // コンテンツ表示切り替え
+  document.getElementById('time-tabs').style.display=isClass?'none':'flex';
+  document.getElementById('class-selector').style.display=isClass?'block':'none';
+  document.querySelector('.scroll').style.display=isClass?'none':'flex';
+  const cc=document.getElementById('class-content');
+  cc.style.display=isClass?'flex':'none';
+}
+
+// クラス選択データ
+const classData={
+  '0歳児':{head:'0歳児クラスのレポート',count:'今月 6冊',scene:'午睡前が多め',
+    themes:['動物','くりかえし','生活習慣'],reaction:'「集中していた」「真似した」の反応が多く見られます。くりかえしの言葉や動きがある絵本への反応がよい傾向です。',
+    books:[['いないいないばあ','笑いが最多・繰り返し喜ぶ'],['じゃあじゃあびりびり','真似・言葉返しあり']],
+    next:'くりかえしの言葉がある絵本がよく合っているようです。次は少し展開のある「だるまさんが」シリーズを試してみるとよいかもしれません。'},
+  '1歳児':{head:'1歳児クラスのレポート',count:'今月 8冊',scene:'朝の会が多め',
+    themes:['動物','くりかえし','春'],reaction:'「笑った」「もう一回を求めた」が多く、親しみやすい絵本への反応がよく出ています。',
+    books:[['だるまさんが','もう一回が最多'],['きんぎょがにげた','指さし・言葉返しあり']],
+    next:'指さしや声出しを楽しめる絵本が合っているようです。少しずつ物語のある絵本へ広げてみるとよいかもしれません。'},
+  '2歳児':{head:'2歳児クラスのレポート',count:'今月 10冊',scene:'帰りの会が多め',
+    themes:['食べ物','動物','友だち'],reaction:'「言葉を返した」「集中していた」が増えています。語彙が広がっている時期が記録から見えます。',
+    books:[['はらぺこあおむし','言葉返し最多'],['おおきなかぶ','全員で声を出せた']],
+    next:'友だちと一緒に楽しめる絵本や、言葉遊びがある絵本を取り入れてみるとよいかもしれません。'},
+  '3歳児':{head:'3歳児クラスのレポート',count:'今月 12冊',scene:'活動導入が多め',
+    themes:['食べ物','春','友だち'],reaction:'笑い・集中・言葉の返しが重なる回が増えています。活動前の読み聞かせが効果的な様子です。',
+    books:[['ぐりとぐら','年間最多・反応の質も高い'],['しろくまちゃんのほっとけーき','制作につながった']],
+    next:'「一緒に作る・食べる」テーマへの反応がよいようです。クッキング活動や共同制作の前に絵本を置いてみるとよいかもしれません。'},
+  '4歳児':{head:'4歳児クラスのレポート',count:'今月 9冊',scene:'自由遊びが多め',
+    themes:['冒険','友だち','生活習慣'],reaction:'「話が広がった」「見通しが立った」の傾向が増え、絵本の後に会話が生まれやすくなっています。',
+    books:[['ぐるんぱのようちえん','話の広がりが最多'],['おまえうまそうだな','余韻が残った']],
+    next:'少し長めの物語絵本や、問いかけが生まれやすい絵本に広げてみるとよいかもしれません。読み終えた後にひとこと問いかける時間を設けてみるのもおすすめです。'},
+  '5歳児':{head:'5歳児クラスのレポート',count:'今月 11冊',scene:'帰りの会が多め',
+    themes:['友だち','冒険','卒園'],reaction:'「見通しが立った」「話が広がった」が多く、内容を深く受け取っている様子が記録から伝わります。',
+    books:[['スイミー','全員集中・余韻あり'],['ぐりとぐらのえんそく','卒園前の読み聞かせに最適']],
+    next:'卒園が近い時期です。子どもたちの思い出や成長をテーマにした絵本を選んでみるとよいかもしれません。'},
+  '混合':{head:'混合クラスのレポート',count:'今月 7冊',scene:'午睡前が多め',
+    themes:['動物','くりかえし','友だち'],reaction:'年齢差があっても全員が楽しめた絵本は、視覚的にわかりやすいものや、くりかえし構造のある作品でした。',
+    books:[['ももんちゃん あそぼう','全年齢で笑いあり'],['だるまさんと','異年齢で声が出た']],
+    next:'視覚的に楽しめる絵本や、大きい子が小さい子に読み聞かせできるような場面作りも試してみるとよいかもしれません。'}
+};
+
+function selectClass(el, cls){
+  document.querySelectorAll('.class-chip').forEach(c=>c.classList.remove('active-chip'));
+  el.classList.add('active-chip');
+  const d=classData[cls];
+  if(!d) return;
+  document.getElementById('class-report-head').textContent=d.head;
+  document.getElementById('cr-count').textContent=d.count;
+  document.getElementById('cr-scene').textContent=d.scene;
+  document.getElementById('cr-themes').innerHTML=d.themes.map((t,i)=>`<div class="trend-chip${i===2?' blue':''}">${t}</div>`).join('');
+  document.getElementById('cr-reaction').textContent=d.reaction;
+  document.getElementById('cr-books').innerHTML=d.books.map((b,i)=>`<div class="rec-book-row"><div class="rec-book-num" style="background:#C3E6C8">${i+1}</div><div class="rec-book-info"><div class="rec-book-title">${b[0]}</div><div class="rec-book-reason">${b[1]}</div></div></div>`).join('');
+  document.getElementById('cr-next-text').textContent=d.next;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>えほんのあと｜AI絵本相談</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',sans-serif;background:#DFE9DB;padding:20px;min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:12px}
+h1{font-size:12px;color:#2E7D46;font-weight:500;letter-spacing:0.06em;opacity:0.8}
+
+/* ── Phone shell ── */
+.phone{
+  width:360px;background:#F2F5F0;
+  border-radius:28px;overflow:hidden;
+  border:1px solid #C4D4BE;
+  box-shadow:0 8px 32px rgba(0,0,0,0.10),0 2px 8px rgba(0,0,0,0.06);
+  display:flex;flex-direction:column;height:740px;position:relative
+}
+
+/* ── Header ── */
+.header{
+  background:linear-gradient(160deg,#1E6B38 0%,#2E7D46 60%,#3A9156 100%);
+  padding:14px 16px 16px;flex-shrink:0;
+  position:relative;overflow:hidden
+}
+.header::after{
+  content:'';position:absolute;right:-20px;top:-20px;
+  width:120px;height:120px;border-radius:50%;
+  background:rgba(255,255,255,0.05)
+}
+.h-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.h-title{color:#fff;font-size:15px;font-weight:700;letter-spacing:0.02em}
+.h-badge{font-size:10px;color:#A8D4B4;background:rgba(255,255,255,0.12);padding:3px 9px;border-radius:20px;font-weight:500}
+
+/* ── 検索バー ── */
+.search-wrap{position:relative}
+.search-bar{
+  display:flex;align-items:center;gap:10px;
+  background:#fff;border-radius:14px;
+  padding:12px 14px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.08)
+}
+.search-bar:focus-within{box-shadow:0 2px 12px rgba(0,0,0,0.12),0 0 0 2px rgba(76,175,106,0.3)}
+.si{flex-shrink:0}
+.si svg{width:17px;height:17px;fill:#A8D4B4}
+.search-input{
+  flex:1;border:none;outline:none;
+  font-size:14px;color:#2C2C2A;
+  font-family:inherit;background:transparent;
+  line-height:1.4
+}
+.search-input::placeholder{color:#C0BDB5;font-size:13px}
+.clear-btn{display:none;font-size:14px;color:#C0BDB5;cursor:pointer;flex-shrink:0;width:20px;height:20px;align-items:center;justify-content:center;border-radius:50%;background:#F0EDE8}
+
+/* ── Suggest ── */
+.suggest-box{
+  position:absolute;top:calc(100% + 6px);left:0;right:0;
+  background:#fff;border-radius:12px;
+  border:1px solid #DCE4D9;
+  box-shadow:0 4px 16px rgba(0,0,0,0.10);
+  z-index:10;display:none;overflow:hidden
+}
+.suggest-box.show{display:block}
+.suggest-item{
+  padding:10px 14px;font-size:13px;color:#2C2C2A;
+  cursor:pointer;display:flex;align-items:center;gap:8px;
+  border-bottom:1px solid #F4F2EC;transition:background 0.1s
+}
+.suggest-item:last-child{border-bottom:none}
+.suggest-item:hover,.suggest-item:active{background:#EAF5EC}
+.suggest-item svg{width:14px;height:14px;fill:#B4B2A9;flex-shrink:0}
+.suggest-tag{font-size:10px;color:#4CAF6A;background:#EAF5EC;padding:2px 7px;border-radius:20px;margin-left:auto;white-space:nowrap}
+
+/* ── Scroll area ── */
+.scroll{
+  flex:1;overflow-y:auto;padding:14px 14px 16px;
+  display:flex;flex-direction:column;gap:14px
+}
+.scroll::-webkit-scrollbar{width:3px}
+.scroll::-webkit-scrollbar-thumb{background:#C3E6C8;border-radius:2px}
+
+/* ── AI相談ボタン ── */
+.ai-btn{
+  background:linear-gradient(135deg,#E8820A 0%,#F0943A 100%);
+  border:none;border-radius:14px;padding:14px 16px;
+  display:flex;align-items:center;gap:12px;cursor:pointer;
+  width:100%;font-family:inherit;
+  box-shadow:0 3px 12px rgba(232,130,10,0.30);
+  transition:transform 0.12s,box-shadow 0.12s
+}
+.ai-btn:active{transform:scale(0.98);box-shadow:0 1px 6px rgba(232,130,10,0.20)}
+.ai-btn-icon{
+  width:36px;height:36px;border-radius:10px;
+  background:rgba(255,255,255,0.22);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0
+}
+.ai-btn-icon svg{width:18px;height:18px;fill:#fff}
+.ai-btn-text{text-align:left;flex:1}
+.ai-btn-main{font-size:14px;font-weight:700;color:#fff;line-height:1.2}
+.ai-btn-sub{font-size:11px;color:rgba(255,255,255,0.82);margin-top:2px}
+.ai-btn-arrow{font-size:20px;color:rgba(255,255,255,0.7)}
+
+/* ── セクション見出し ── */
+.sec-head{display:flex;align-items:center;gap:8px;margin-bottom:-6px}
+.sec-head-label{font-size:10px;font-weight:700;color:#8A8A85;letter-spacing:0.08em}
+.sec-head-line{flex:1;height:1px;background:#DCE4D9}
+
+/* ── クイック選択 ── */
+.quick-section{display:flex;flex-direction:column;gap:8px}
+.qs-label{font-size:11px;font-weight:700;color:#5A5A57;letter-spacing:0.04em;display:flex;align-items:center;gap:6px}
+.qs-label::before{content:'';display:inline-block;width:3px;height:11px;background:#4CAF6A;border-radius:2px}
+.qs-chips{display:flex;flex-wrap:wrap;gap:6px}
+.qchip{
+  font-size:12px;padding:7px 13px;border-radius:20px;
+  cursor:pointer;user-select:none;transition:all 0.12s;
+  border:1px solid #D4D2CC;background:#fff;color:#444441;
+  display:flex;align-items:center;gap:5px
+}
+.qchip:active{transform:scale(0.96)}
+.qchip.sel-green{background:#2E7D46;border-color:#2E7D46;color:#fff;font-weight:500}
+.qchip.sel-blue{background:#185FA5;border-color:#185FA5;color:#fff;font-weight:500}
+.qchip.sel-orange{background:#C16B18;border-color:#C16B18;color:#fff;font-weight:500}
+
+/* 年齢チップ横スクロール */
+.age-scroll{display:flex;gap:6px;overflow-x:auto;padding:2px 0}
+.age-scroll::-webkit-scrollbar{display:none}
+
+/* ── 変換プレビュー ── */
+.converted-preview{
+  background:#EAF5EC;border:1px solid #B8D8BC;border-radius:12px;
+  padding:10px 14px;display:none;align-items:flex-start;gap:8px
+}
+.converted-preview.show{display:flex}
+.cp-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.cp-text{font-size:13px;color:#1B4D2B;line-height:1.6;flex:1}
+.cp-edit{font-size:11px;color:#4CAF6A;cursor:pointer;white-space:nowrap;margin-top:2px}
+
+/* ── 結果エリア ── */
+.result-head{display:flex;justify-content:space-between;align-items:center}
+.result-label{font-size:11px;font-weight:700;color:#2E7D46}
+.result-count{font-size:11px;color:#8A8A85}
+
+/* ── 絵本カード ── */
+.book-card{
+  background:#fff;border:1px solid #DCE4D9;border-radius:16px;
+  overflow:hidden;transition:box-shadow 0.12s
+}
+.book-card:active{box-shadow:0 4px 16px rgba(0,0,0,0.08)}
+.bc-top{padding:13px 13px 10px;display:flex;gap:12px;align-items:flex-start}
+.bc-thumb{
+  width:52px;height:68px;border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:26px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.10)
+}
+.bc-info{flex:1;min-width:0}
+.bc-title{font-size:14px;font-weight:700;color:#2C2C2A;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bc-author{font-size:11px;color:#8A8A85;margin-bottom:6px}
+.bc-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px}
+.tag{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;white-space:nowrap}
+.tag-age{background:#E6F3FB;color:#0C447C}
+.tag-scene{background:#EAF5EC;color:#1B4D2B}
+.tag-react{background:#FEF3E8;color:#7A3A05}
+.bc-reason{
+  font-size:12px;color:#5A5A57;line-height:1.65;
+  background:#F8F6F2;border-radius:8px;padding:8px 10px;
+  border-left:3px solid #C3E6C8;margin:0 13px
+}
+.bc-reason-label{font-size:9px;font-weight:700;color:#4CAF6A;letter-spacing:0.06em;margin-bottom:3px}
+.bc-actions{display:flex;gap:6px;padding:10px 13px 13px}
+.bc-btn-primary{
+  flex:1;background:#2E7D46;color:#fff;border:none;
+  border-radius:10px;padding:9px;font-size:12px;font-weight:700;
+  cursor:pointer;font-family:inherit
+}
+.bc-btn-sec{
+  flex:1;background:#fff;color:#5A5A57;
+  border:1px solid #D4D2CC;border-radius:10px;
+  padding:9px;font-size:12px;cursor:pointer;font-family:inherit
+}
+
+/* ── BottomNav ── */
+.bottomnav{
+  background:#fff;border-top:1px solid #E0E8DC;
+  display:flex;padding:8px 0 12px;flex-shrink:0
+}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.nav-item svg{width:20px;height:20px;fill:#C0BDB5}
+.nav-item.active svg{fill:#2E7D46}
+.nav-lbl{font-size:10px;color:#8A8A85}
+.nav-item.active .nav-lbl{color:#2E7D46;font-weight:700}
+.nav-dot{width:4px;height:4px;border-radius:50%;background:#4CAF6A;margin:0 auto}
+
+/* ── ローディングアニメ ── */
+.loading{display:none;flex-direction:column;align-items:center;gap:10px;padding:24px 0}
+.loading.show{display:flex}
+.loading-dots{display:flex;gap:6px}
+.loading-dot{width:8px;height:8px;border-radius:50%;background:#4CAF6A;animation:bounce 1.2s infinite ease-in-out}
+.loading-dot:nth-child(2){animation-delay:0.2s}
+.loading-dot:nth-child(3){animation-delay:0.4s}
+@keyframes bounce{0%,80%,100%{transform:scale(0.8);opacity:0.5}40%{transform:scale(1.1);opacity:1}}
+.loading-text{font-size:12px;color:#8A8A85}
+
+/* fade-in */
+.fade-in{animation:fadeUp 0.3s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* もっと見るボタン */
+.more-btn{
+  margin-top:8px;font-size:12px;color:#4CAF6A;
+  background:transparent;border:1px solid #C3E6C8;
+  border-radius:20px;padding:6px 14px;cursor:pointer;
+  font-family:inherit;transition:all 0.12s;display:block
+}
+.more-btn:active{background:#EAF5EC}
+</style>
+</head>
+<body>
+<h1>えほんのあと｜AI絵本相談 画面設計</h1>
+
+<div class="phone">
+
+  <!-- ① Header + 検索バー -->
+  <div class="header">
+    <div class="h-row">
+      <div class="h-title">AI絵本相談</div>
+      <div class="h-badge">✦ AI搭載</div>
+    </div>
+    <div class="search-wrap">
+      <div class="search-bar">
+        <div class="si"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></div>
+        <input
+          id="search-input"
+          class="search-input"
+          placeholder="例：午睡前に落ち着ける絵本（3歳）"
+          oninput="handleInput(this)"
+          onfocus="handleFocus(this)"
+          onblur="setTimeout(()=>hideSuggest(),200)"
+        >
+        <div class="clear-btn" id="clear-btn" onclick="clearSearch()">✕</div>
+      </div>
+
+      <!-- ④ サジェスト -->
+      <div class="suggest-box" id="suggest-box">
+        <div class="suggest-item" onclick="applySuggest('ひな祭り（行事の理解）')">
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          ひな祭り（行事の理解）
+          <span class="suggest-tag">行事</span>
+        </div>
+        <div class="suggest-item" onclick="applySuggest('ひな祭り（名前を覚える）')">
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          ひな祭り（名前を覚える）
+          <span class="suggest-tag">行事</span>
+        </div>
+        <div class="suggest-item" onclick="applySuggest('ひな祭り（導入用・3歳）')">
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          ひな祭り（導入用・3歳）
+          <span class="suggest-tag">導入</span>
+        </div>
+        <div class="suggest-item" onclick="applySuggest('ひな祭りを楽しく紹介したい（5歳向け）')">
+          <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          ひな祭りを楽しく紹介したい（5歳）
+          <span class="suggest-tag">5歳</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll" id="main-scroll">
+
+    <!-- ② AIに相談ボタン -->
+    <button class="ai-btn" onclick="runSearch()">
+      <div class="ai-btn-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2zm0 14l.75 2.25L15 19l-2.25.75L12 22l-.75-2.25L9 19l2.25-.75L12 16z"/></svg>
+      </div>
+      <div class="ai-btn-text">
+        <div class="ai-btn-main">AIに相談する</div>
+        <div class="ai-btn-sub">文章のまま入力してOK</div>
+      </div>
+      <div class="ai-btn-arrow">›</div>
+    </button>
+
+    <!-- ③ クイック選択 -->
+    <div id="quick-section">
+      <div class="sec-head" style="margin-bottom:10px">
+        <div class="sec-head-label">クイック選択</div>
+        <div class="sec-head-line"></div>
+        <div style="font-size:10px;color:#B4B2A9;white-space:nowrap">選ぶだけでAIが提案</div>
+      </div>
+
+      <div class="quick-section">
+        <div class="qs-label">シーン</div>
+        <div class="qs-chips">
+          <div class="qchip" onclick="togChip(this,'sel-green','scene')">朝の会</div>
+          <div class="qchip" onclick="togChip(this,'sel-green','scene')">帰りの会</div>
+          <div class="qchip" onclick="togChip(this,'sel-green','scene')">活動導入</div>
+          <div class="qchip sel-green" onclick="togChip(this,'sel-green','scene')">午睡前</div>
+          <div class="qchip" onclick="togChip(this,'sel-green','scene')">行事前</div>
+          <div class="qchip" onclick="togChip(this,'sel-green','scene')">自由遊び</div>
+        </div>
+      </div>
+
+      <div class="quick-section" style="margin-top:6px">
+        <div class="qs-label">目的</div>
+        <div class="qs-chips">
+          <div class="qchip sel-blue" onclick="togChip(this,'sel-blue','purpose')">落ち着きたい</div>
+          <div class="qchip" onclick="togChip(this,'sel-blue','purpose')">見通しを持たせたい</div>
+          <div class="qchip" onclick="togChip(this,'sel-blue','purpose')">興味を広げたい</div>
+          <div class="qchip" onclick="togChip(this,'sel-blue','purpose')">理解を深めたい</div>
+        </div>
+      </div>
+
+      <!-- 今の状態（子どもタイプ）3軸 -->
+      <div class="quick-section" style="margin-top:6px">
+        <div class="qs-label">今の状態</div>
+
+        <!-- 軸ラベル -->
+        <div style="font-size:10px;color:#8A8A85;font-weight:500;letter-spacing:0.04em;margin-bottom:4px;margin-top:2px">🏃 動き方</div>
+        <div class="qs-chips" id="type-chips-primary">
+          <div class="qchip" onclick="togChip(this,'sel-orange','type')">からだを動かしたい</div>
+          <div class="qchip" onclick="togChip(this,'sel-orange','type')">じっとして聞きたい</div>
+          <div class="qchip" onclick="togChip(this,'sel-orange','type')">手を動かしながら聞く</div>
+
+          <div style="font-size:10px;color:#8A8A85;font-weight:500;letter-spacing:0.04em;margin:6px 0 4px;width:100%">👀 見方・集中</div>
+          <div class="qchip" onclick="togChip(this,'sel-orange','type')">絵をじっくり見る</div>
+          <div class="qchip" onclick="togChip(this,'sel-orange','type')">くりかえしが好き</div>
+          <div class="qchip" onclick="togChip(this,'sel-orange','type')">短い話が合う</div>
+
+          <div style="font-size:10px;color:#8A8A85;font-weight:500;letter-spacing:0.04em;margin:6px 0 4px;width:100%">💬 感じ方・関わり</div>
+          <div class="qchip" onclick="togChip(this,'sel-orange','type')">声を出して楽しむ</div>
+          <div class="qchip" onclick="togChip(this,'sel-orange','type')">真似をして楽しむ</div>
+          <div class="qchip" onclick="togChip(this,'sel-orange','type')">静かに受け取る</div>
+        </div>
+
+        <!-- もっと見る -->
+        <div id="type-more-chips" class="qs-chips" style="display:none">
+          <div style="font-size:10px;color:#8A8A85;font-weight:500;letter-spacing:0.04em;margin-bottom:4px;width:100%">🏃 動き方（追加）</div>
+          <div class="qchip" onclick="togChip(this,'sel-orange','type')">外を走り回りたい日</div>
+          <div class="qchip" onclick="togChip(this,'sel-orange','type')">ゆったり過ごしたい</div>
+
+          <div style="font-size:10px;color:#8A8A85;font-weight:500;letter-spacing:0.04em;margin:6px 0 4px;width:100%">👀 見方・集中（追加）</div>
+          <div class="qchip" onclick="togChip(this,'sel-orange','type')">話の続きが気になる</div>
+          <div class="qchip" onclick="togChip(this,'sel-orange','type')">ページをめくりたがる</div>
+          <div class="qchip" onclick="togChip(this,'sel-orange','type')">長い話もOK</div>
+
+          <div style="font-size:10px;color:#8A8A85;font-weight:500;letter-spacing:0.04em;margin:6px 0 4px;width:100%">💬 感じ方・関わり（追加）</div>
+          <div class="qchip" onclick="togChip(this,'sel-orange','type')">言葉が増えてきた</div>
+          <div class="qchip" onclick="togChip(this,'sel-orange','type')">感情の波が大きい日</div>
+          <div class="qchip" onclick="togChip(this,'sel-orange','type')">誰かと一緒に楽しみたい</div>
+          <div class="qchip" onclick="togChip(this,'sel-orange','type')">ひとりで見ていたい</div>
+        </div>
+
+        <button class="more-btn" id="more-btn" onclick="toggleMore()">＋ もっと見る</button>
+      </div>
+
+      <div class="quick-section" style="margin-top:6px">
+        <div class="qs-label">年齢</div>
+        <!-- 折り返し2段OK -->
+        <div class="qs-chips" style="flex-wrap:wrap">
+          <div class="qchip" onclick="togChip(this,'sel-green','age')">0歳</div>
+          <div class="qchip" onclick="togChip(this,'sel-green','age')">1歳</div>
+          <div class="qchip sel-green" onclick="togChip(this,'sel-green','age')">2歳</div>
+          <div class="qchip" onclick="togChip(this,'sel-green','age')">3歳</div>
+          <div class="qchip" onclick="togChip(this,'sel-green','age')">4歳</div>
+          <div class="qchip" onclick="togChip(this,'sel-green','age')">5歳</div>
+          <div class="qchip" onclick="togChip(this,'sel-green','age')">混合</div>
+        </div>
+      </div>
+
+      <!-- 変換プレビュー -->
+      <div class="converted-preview" id="converted-preview">
+        <div class="cp-icon">📝</div>
+        <div class="cp-text" id="converted-text">2歳児で午睡前に落ち着ける絵本を探しています。</div>
+        <div class="cp-edit" onclick="editQuery()">編集</div>
+      </div>
+    </div>
+
+    <!-- ローディング -->
+    <div class="loading" id="loading">
+      <div class="loading-dots">
+        <div class="loading-dot"></div>
+        <div class="loading-dot"></div>
+        <div class="loading-dot"></div>
+      </div>
+      <div class="loading-text">AIが絵本を探しています...</div>
+    </div>
+
+    <!-- ⑤ 検索結果 -->
+    <div id="results" style="display:none;flex-direction:column;gap:10px">
+      <div class="result-head">
+        <div class="result-label">✦ AIの提案</div>
+        <div class="result-count">3冊見つかりました</div>
+      </div>
+
+      <!-- カード1 -->
+      <div class="book-card fade-in">
+        <div class="bc-top">
+          <div class="bc-thumb" style="background:#C3E6C8">📗</div>
+          <div class="bc-info">
+            <div class="bc-title">おやすみなさいおつきさま</div>
+            <div class="bc-author">M.W.ブラウン / 評論社</div>
+            <div class="bc-tags">
+              <span class="tag tag-age">0〜3歳</span>
+              <span class="tag tag-scene">午睡前</span>
+              <span class="tag tag-react">🌙 静かな余韻</span>
+            </div>
+          </div>
+        </div>
+        <div class="bc-reason">
+          <div class="bc-reason-label">AIの理由</div>
+          くりかえしのやさしいリズムが眠りへの導入に自然に合います。2歳児が「おやすみ」と声を合わせることで、午睡への切り替えがスムーズになります。
+        </div>
+        <div class="bc-actions">
+          <button class="bc-btn-primary">記録に使う</button>
+          <button class="bc-btn-sec">📌 読みたいに追加</button>
+        </div>
+      </div>
+
+      <!-- カード2 -->
+      <div class="book-card fade-in" style="animation-delay:0.08s">
+        <div class="bc-top">
+          <div class="bc-thumb" style="background:#C3DCF0">📘</div>
+          <div class="bc-info">
+            <div class="bc-title">もこ もこもこ</div>
+            <div class="bc-author">谷川俊太郎 / 文研出版</div>
+            <div class="bc-tags">
+              <span class="tag tag-age">1〜3歳</span>
+              <span class="tag tag-scene">午睡前</span>
+              <span class="tag tag-react">🎯 集中</span>
+            </div>
+          </div>
+        </div>
+        <div class="bc-reason">
+          <div class="bc-reason-label">AIの理由</div>
+          言葉の少ないオノマトペ絵本で、視覚的な変化とやさしい音が心地よい眠気を誘います。2歳の子が静かに見入る場面が多い絵本です。
+        </div>
+        <div class="bc-actions">
+          <button class="bc-btn-primary">記録に使う</button>
+          <button class="bc-btn-sec">📌 読みたいに追加</button>
+        </div>
+      </div>
+
+      <!-- カード3 -->
+      <div class="book-card fade-in" style="animation-delay:0.16s">
+        <div class="bc-top">
+          <div class="bc-thumb" style="background:#F9DDC0">📙</div>
+          <div class="bc-info">
+            <div class="bc-title">くまさんくまさんなにみてるの？</div>
+            <div class="bc-author">E.カール / 偕成社</div>
+            <div class="bc-tags">
+              <span class="tag tag-age">1〜3歳</span>
+              <span class="tag tag-scene">午睡前</span>
+              <span class="tag tag-react">💬 言葉を返した</span>
+            </div>
+          </div>
+        </div>
+        <div class="bc-reason">
+          <div class="bc-reason-label">AIの理由</div>
+          単純なくりかえし構造が2歳の集中を引き出します。言葉を一緒に返す体験が心地よく終わり、落ち着いた雰囲気のまま午睡に移行しやすいです。
+        </div>
+        <div class="bc-actions">
+          <button class="bc-btn-primary">記録に使う</button>
+          <button class="bc-btn-sec">📌 読みたいに追加</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /scroll -->
+
+  <!-- BottomNav -->
+  <div class="bottomnav">
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <div class="nav-lbl">ホーム</div>
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"/></svg>
+      <div class="nav-lbl">AIレポート</div>
+    </div>
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <div class="nav-lbl">検索</div>
+      <div class="nav-dot"></div>
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 1 1 0 10A5 5 0 0 1 12 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/></svg>
+      <div class="nav-lbl">マイページ</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── チップ状態管理 ──
+const chipState = {scene:[],purpose:[],type:[],age:[]};
+
+// チップの変換ルール
+const convertMap = {
+  scene: {朝の会:'朝の会',帰りの会:'帰りの会',活動導入:'活動導入時',午睡前:'午睡前',行事前:'行事前',自由遊び:'自由遊び中'},
+  purpose: {落ち着きたい:'落ち着ける',見通しを持たせたい:'見通しを持たせる',興味を広げたい:'興味を広げる',理解を深めたい:'理解を深める'},
+  type: {
+    'からだを動かしたい':'体を動かしたい子が多い',
+    'じっとして聞きたい':'じっくり聞ける状態の子向け',
+    '手を動かしながら聞く':'手遊びや動作を交えて楽しめる',
+    '絵をじっくり見る':'絵をじっくり見ることを楽しめる',
+    'くりかえしが好き':'くりかえし構造が好きな',
+    '短い話が合う':'短い話が合う',
+    '声を出して楽しむ':'声を出して楽しめる',
+    '真似をして楽しむ':'真似や動作を楽しめる',
+    '静かに受け取る':'静かに受け取るタイプの',
+    '外を走り回りたい日':'活発に過ごしたい日の切り替えに使える',
+    'ゆったり過ごしたい':'ゆったりした雰囲気に合う',
+    '話の続きが気になる':'続きが気になる構造が合う',
+    'ページをめくりたがる':'ページめくりを楽しめる',
+    '長い話もOK':'長めの物語でも集中できる',
+    '言葉が増えてきた':'語彙が育ちつつある子向け',
+    '感情の波が大きい日':'気持ちの整理につながる',
+    '誰かと一緒に楽しみたい':'みんなで楽しめる',
+    'ひとりで見ていたい':'ひとりでじっくり向き合える',
+  },
+  age: (v) => `${v}児で`
+};
+
+function togChip(el, cls, group){
+  const label = el.textContent.trim();
+  const arr = chipState[group];
+  const idx = arr.indexOf(label);
+  if(idx >= 0){
+    arr.splice(idx, 1);
+    el.className = 'qchip';
+  } else {
+    if(group === 'age'){
+      chipState.age = [];
+      document.querySelectorAll('[onclick*="\'age\'"]').forEach(c=>{ c.className='qchip'; });
+    }
+    arr.push(label);
+    el.classList.add(cls);
+  }
+  updatePreview();
+}
+
+function toggleMore(){
+  const more = document.getElementById('type-more-chips');
+  const btn = document.getElementById('more-btn');
+  const isOpen = more.style.display !== 'none';
+  more.style.display = isOpen ? 'none' : 'flex';
+  btn.textContent = isOpen ? '＋ もっと見る' : '－ 閉じる';
+}
+
+function updatePreview(){
+  const {scene, purpose, type, age} = chipState;
+  const hasAny = scene.length || purpose.length || type.length || age.length;
+  const preview = document.getElementById('converted-preview');
+
+  if(!hasAny){ preview.classList.remove('show'); return; }
+
+  // 文章変換
+  let parts = [];
+  if(age.length) parts.push(`${age[0]}児で`);
+  if(scene.length) parts.push(scene.map(s=>convertMap.scene[s]||s).join('・'));
+  if(purpose.length) parts.push(purpose.map(p=>convertMap.purpose[p]||p).join('・') + 'ような');
+  if(type.length) parts.push(type.map(t=>convertMap.type[t]||t).join('・'));
+  const q = parts.join('、') + '絵本を探しています。';
+
+  document.getElementById('converted-text').textContent = q;
+  preview.classList.add('show');
+
+  // 検索バーにも反映
+  const input = document.getElementById('search-input');
+  if(!input.value) {
+    input.value = q;
+    document.getElementById('clear-btn').style.display = 'flex';
+  }
+}
+
+// ── 検索バー ──
+function handleInput(input){
+  const val = input.value;
+  document.getElementById('clear-btn').style.display = val ? 'flex' : 'none';
+  // サジェスト：「ひな祭り」を含む場合に表示
+  if(val.includes('ひな') || val.includes('雛') || val.includes('桃')){
+    document.getElementById('suggest-box').classList.add('show');
+  } else {
+    document.getElementById('suggest-box').classList.remove('show');
+  }
+}
+function handleFocus(input){
+  if(input.value.includes('ひな') || input.value.includes('雛')){
+    document.getElementById('suggest-box').classList.add('show');
+  }
+}
+function hideSuggest(){
+  document.getElementById('suggest-box').classList.remove('show');
+}
+function applySuggest(text){
+  document.getElementById('search-input').value = text;
+  document.getElementById('clear-btn').style.display = 'flex';
+  document.getElementById('suggest-box').classList.remove('show');
+}
+function clearSearch(){
+  document.getElementById('search-input').value = '';
+  document.getElementById('clear-btn').style.display = 'none';
+  document.getElementById('suggest-box').classList.remove('show');
+}
+function editQuery(){
+  document.getElementById('search-input').focus();
+}
+
+// ── 検索実行 ──
+function runSearch(){
+  const input = document.getElementById('search-input').value;
+  const {scene,purpose,type,age} = chipState;
+  const hasQuery = input || scene.length || purpose.length || type.length || age.length;
+  if(!hasQuery) return;
+
+  // ローディング表示
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('quick-section').style.opacity = '0.5';
+
+  setTimeout(() => {
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('results').style.display = 'flex';
+    document.getElementById('quick-section').style.opacity = '1';
+    document.getElementById('main-scroll').scrollTo({top:0, behavior:'smooth'});
+  }, 1600);
+}
+
+// 初期状態：変換プレビューを表示（デモ用に初期選択あり）
+setTimeout(updatePreview, 100);
+</script>
+</body>
+</html>
