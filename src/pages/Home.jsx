@@ -52,9 +52,9 @@ const MONTHLY_THEMES = {
   ],
   4:  [
     { emoji: '🌸', label: 'さくら' },
+    { emoji: '🎒', label: '入園' },
     { emoji: '🦋', label: 'ちょうちょ' },
     { emoji: '🌼', label: 'たんぽぽ' },
-    { emoji: '🐛', label: '虫' },
     { emoji: '🎏', label: 'こいのぼり' },
   ],
   5:  [
@@ -65,18 +65,19 @@ const MONTHLY_THEMES = {
     { emoji: '🎏', label: 'こいのぼり' },
   ],
   6:  [
-    { emoji: '🌧️', label: '雨' },
+    { emoji: '☔', label: '梅雨' },
     { emoji: '💠', label: 'あじさい' },
     { emoji: '🐌', label: 'かたつむり' },
     { emoji: '💧', label: '水たまり' },
+    { emoji: '🏊', label: 'プール開き' },
     { emoji: '🎋', label: '七夕' },
   ],
   7:  [
     { emoji: '🎋', label: '七夕' },
-    { emoji: '☀️', label: '夏の空' },
-    { emoji: '🦗', label: 'セミ' },
-    { emoji: '🍉', label: 'すいか' },
-    { emoji: '⛈️', label: '夕立' },
+    { emoji: '🌺', label: 'あさがお' },
+    { emoji: '🌊', label: '海' },
+    { emoji: '💦', label: '水遊び' },
+    { emoji: '🏮', label: '夏祭り' },
   ],
   8:  [
     { emoji: '🌊', label: '海' },
@@ -88,7 +89,7 @@ const MONTHLY_THEMES = {
   9:  [
     { emoji: '🌕', label: 'お月見' },
     { emoji: '🌰', label: 'どんぐり' },
-    { emoji: '🍃', label: '秋風' },
+    { emoji: '🍂', label: '赤とんぼ' },
     { emoji: '🦗', label: '虫の声' },
     { emoji: '🌾', label: '実り' },
   ],
@@ -595,9 +596,15 @@ export default function Home() {
           {searchResults && <ResultsBlock books={searchResults} label="おすすめ絵本・紙芝居" onTap={setSelectedBook} />}
         </div>
 
-        {/* 今のおすすめテーマ */}
+        {/* おすすめのテーマから探す */}
         <div className="bg-white border border-[#DCE4D9] rounded-2xl p-4">
-          <p className="text-[10px] font-bold text-[#8A8A85] tracking-wide mb-3">今のおすすめテーマ</p>
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className="w-7 h-7 rounded-lg bg-green-600 flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-sm leading-none">🌿</span>
+            </div>
+            <p className="text-sm font-bold text-[#2C2C2A]">おすすめのテーマから探す</p>
+          </div>
+          <p className="text-xs text-[#8A8A85] mb-3">今の時期らしいテーマが並んでいます</p>
           <div className="flex flex-wrap gap-2">
             {getSeasonThemes(today.getMonth() + 1).map(theme => (
               <button key={theme.label} onClick={() => handleThemeSelect(theme.label)}
