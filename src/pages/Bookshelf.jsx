@@ -35,10 +35,10 @@ const WISHLIST_BOOKS = [
 
 const AGE_FILTERS = ['すべて', '0歳', '1歳', '2歳', '3歳', '4歳', '5歳', '混合']
 const TABS = [
-  { id: 'read',    label: '読んだ本' },
-  { id: 'fav',     label: 'お気に入り' },
-  { id: 'wishlist',label: '読みたい' },
-  { id: 'ranking', label: 'ランキング' },
+  { id: 'read',    label: '読んだもの' },
+  { id: 'fav',     label: '心に残ったもの' },
+  { id: 'wishlist',label: '読んでみたいもの' },
+  { id: 'ranking', label: '人気のもの' },
 ]
 
 function formatDate(str) {
@@ -109,7 +109,7 @@ export default function Bookshelf() {
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="絵本を検索..."
+            placeholder="ものを検索..."
             className="flex-1 text-sm text-[#2C2C2A] placeholder-[#C0BDB5] outline-none bg-transparent"
           />
           {query && (
@@ -161,7 +161,7 @@ export default function Bookshelf() {
         {(activeTab === 'read' || activeTab === 'fav') && (
           <>
             <p className="text-[11px] text-[#8A8A85] mb-3">
-              {displayBooks.length}冊
+              {displayBooks.length}件
             </p>
             {displayBooks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-[#B4B2A9]">
@@ -204,7 +204,7 @@ export default function Bookshelf() {
         {/* ランキング */}
         {activeTab === 'ranking' && (
           <div className="flex flex-col gap-3">
-            <p className="text-[11px] text-[#8A8A85]">保育現場で反応が良かった絵本</p>
+            <p className="text-[11px] text-[#8A8A85]">保育現場で子どもの反応が良かったもの</p>
             {RANKING.map(item => (
               <div key={item.rank} className="bg-white border border-[#DCE4D9] rounded-2xl p-4 flex gap-3 items-start">
                 {/* 順位 */}
