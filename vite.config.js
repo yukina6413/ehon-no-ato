@@ -8,4 +8,13 @@ export default defineConfig({
     host: true,   // 0.0.0.0 で全ネットワークに公開
     port: 5173,
   },
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.js', 'src/**/*.test.jsx'],
+    // .env.local の VITE_DATA_SOURCE=supabase に関係なく、
+    // テストは常にmockモード（ネットワーク・実DBに依存しない）で実行する
+    env: {
+      VITE_DATA_SOURCE: 'mock',
+    },
+  },
 })

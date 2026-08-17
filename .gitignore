@@ -1,5 +1,7 @@
 # Claude Code
-.claude
+# .claude/agents と共有settings.jsonはハーネスとして追跡する。
+# settings.local.jsonはマシン固有のパス・権限設定のため除外する。
+.claude/settings.local.json
 
 # Logs
 logs

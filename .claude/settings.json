@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(git reset --hard*)",
+      "Bash(git clean*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Read(./.env.local)",
+      "Read(./.env)"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Bash(git commit --amend*)",
+      "Bash(git rebase*)",
+      "Bash(git filter-branch*)",
+      "Bash(git reflog expire*)",
+      "Bash(supabase *)",
+      "Bash(npx supabase*)",
+      "Bash(psql *)",
+      "Bash(npm publish*)",
+      "Bash(vercel*)",
+      "Bash(npx vercel*)",
+      "Bash(netlify*)",
+      "Bash(npm run deploy*)",
+      "Bash(rm -rf*)",
+      "Bash(cat .env.local)",
+      "Bash(cat ./.env.local)",
+      "Read(./supabase/dev-tools/reset_dev_database.sql)"
+    ]
+  }
+}

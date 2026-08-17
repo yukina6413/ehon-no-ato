@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
 import BottomNav from './components/BottomNav'
 import Home from './pages/Home'
 import RecordInput from './pages/RecordInput'
@@ -10,7 +11,6 @@ import AISearch from './pages/AISearch'
 import MyPage from './pages/MyPage'
 import Bookshelf from './pages/Bookshelf'
 
-// BottomNavを非表示にするパス（記録フローと完了画面は非表示）
 const NO_NAV_PATHS = ['/record', '/record-complete']
 
 function AppContent() {
@@ -38,7 +38,9 @@ function AppContent() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </BrowserRouter>
   )
 }
