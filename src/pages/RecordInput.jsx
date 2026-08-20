@@ -10,6 +10,7 @@ import {
   savePracticeLog, getBookById, formatAgeGroups, BOOK_LOOKUP_ERRORS,
 } from '../lib/dataAdapter'
 import { isMock } from '../lib/dataAdapter'
+import { materialTypeLabel } from '../lib/catalog/normalize'
 
 // 認証（確認メール）でページが再読込・遷移しても入力を失わないための保存キー。
 // sessionStorage＝タブを閉じるまで保持。保存成功で消す。
@@ -49,6 +50,7 @@ const AFTER_TYPES = [
 const INITIAL = {
   title:'', author:'', publisher:'',
   bookId: null,   // 検索・絵本詳細から引き継いだ実DBの絵本ID（手入力時はnull）
+  materialType: null,   // 'picture_book' | 'kamishibai'。表示のみ。記録には保存しない
   dateMode:'auto', dateManual: TODAY_ISO,
   ages:[], location:'園', scene:'', sceneActivities:[],
   selectedBy:'読み手', reason:'',   // 読み手が選んだときの「この絵本を選んだ理由」
@@ -166,6 +168,14 @@ function Step1({ form, setForm, titleError }) {
         <p className="text-center text-sm text-green-500">手動で入力する ›</p>
       </Card>
       <Card>
+        {form.materialType && (
+          <div className="mb-3 flex items-center gap-2">
+            <span className="text-[10px] bg-[#EAF5EC] text-green-700 rounded-full px-2.5 py-1">
+              {materialTypeLabel(form.materialType)}
+            </span>
+            <span className="text-[11px] text-[#8A8A85]">として記録します</span>
+          </div>
+        )}
         <div className="flex flex-col gap-3">
           <div><Label>タイトル<Req /></Label>
             <Input value={form.title} onChange={upd('title')} placeholder="例：ぐりとぐら"
@@ -361,13 +371,18 @@ export default function RecordInput() {
   // ② 引き継ぎが無い場合、下書き（sessionStorage）から入力途中の内容とページ番号を戻す。
   const initial = (() => {
     const picked = location.state
-    if (picked?.bookTitle) {
+    // bookId だけでも引き継ぎとして扱う（その場で追加した作品は、
+    // 書名が空でも book_id さえあれば確実にその作品へ記録できる）。
+    if (picked?.bookId || picked?.bookTitle) {
       return {
         form: {
           ...INITIAL,
-          title:  picked.bookTitle,
-          author: picked.bookAuthor || '',
-          bookId: picked.bookId || null,
+          title:     picked.bookTitle  || '',
+          author:    picked.bookAuthor || '',
+          publisher: picked.bookPublisher || '',
+          bookId:    picked.bookId || null,
+          // 表示用。practice_logs には保存しない（保存の正本は bookId）
+          materialType: picked.bookMaterialType || null,
         },
         step: 0,
       }
@@ -396,7 +411,9 @@ export default function RecordInput() {
     let ignore = false
     if (form.bookId && !form.title) {
       getBookById(form.bookId)
-        .then(b => { if (!ignore && b) setForm(f => ({ ...f, title: b.title, author: b.author || f.author })) })
+        .then(b => { if (!ignore && b) setForm(f => ({
+          ...f, title: b.title, author: b.author || f.author, publisher: b.publisher || f.publisher,
+        })) })
         .catch(err => console.error('絵本の再取得に失敗:', err))
     }
     return () => { ignore = true }

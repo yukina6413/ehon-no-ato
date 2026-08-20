@@ -157,7 +157,9 @@ export function saveMockPracticeLog(formData, preStateIds = [], postStateIds = [
   const newLog = {
     id: `log-${Date.now()}`,
     user_id: 'mock-user-001',
-    book_id: null,
+    // 引き継いだ book_id をそのまま持つ（supabaseモードと同じく、保存の正本は book_id）。
+    // 書名で本を探し直す形に戻さないための目印でもある。
+    book_id: formData.bookId ?? null,
     book_title: formData.title || '（タイトルなし）',
     book_author: formData.author || '',
     read_date: formData.dateMode === 'auto' ? todayISO : (formData.dateManual || todayISO),
@@ -178,4 +180,83 @@ export function saveMockPracticeLog(formData, preStateIds = [], postStateIds = [
   logs.unshift(newLog)
   localStorage.setItem(MOCK_PRACTICE_LOGS_KEY, JSON.stringify(logs))
   return newLog.id
+}
+
+// ──── モック：その場で追加した作品（仮登録）────
+// supabaseモードでは create_provisional_book RPC が行うことを、mockモードで再現する。
+// 目的は「Supabaseに繋がない状態でも、追加→記録の流れを最後まで試せる」こと。
+// 実DBと同じく、仮登録した作品は通常の検索（searchBooksByKeyword）には出さない
+// （実DBでは is_active=false のため）。
+export const MOCK_PROVISIONAL_BOOKS_KEY = 'provisional_books_v1'
+
+export function loadMockProvisionalBooks() {
+  try {
+    return JSON.parse(localStorage.getItem(MOCK_PROVISIONAL_BOOKS_KEY) || '[]')
+  } catch {
+    return []
+  }
+}
+
+// 実DBの book_title_key() と同じ考え方（空白・記号を落とした小文字）で書名を比べる
+function mockTitleKey(title) {
+  return String(title ?? '')
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[\s・･、。，．,.!！?？「」『』（）()【】\-‐-―ー~〜:：;；]/g, '')
+}
+
+/**
+ * create_provisional_book RPC の mock版。返す形も同じにする。
+ *   { book_id, status: 'existing' | 'created' | 'candidates', candidates }
+ */
+export function mockCreateProvisionalBook({
+  title, materialType, author = '', illustrator = '', publisher = '',
+  isbn13 = null, publishedYear = null, forceNew = false,
+}) {
+  const provisional = loadMockProvisionalBooks()
+  const all = [
+    ...Object.values(MOCK_BOOKS).map(b => ({
+      id: b.book_id, title: b.title, author: b.author ?? '', publisher: '',
+      isbn13: null, material_type: 'picture_book',
+    })),
+    ...provisional,
+  ]
+
+  // ① ISBNが一致する作品があれば、それを使う（重複を作らない）
+  if (isbn13) {
+    const hit = all.find(b => b.isbn13 && b.isbn13 === isbn13)
+    if (hit) return { book_id: hit.id, status: 'existing', candidates: [] }
+  }
+
+  // ② 書名と種別が同じ作品があれば、作らずに候補を返す（人に選んでもらう）
+  if (!forceNew) {
+    const key = mockTitleKey(title)
+    const cands = all.filter(b =>
+      mockTitleKey(b.title) === key && (b.material_type ?? 'picture_book') === materialType)
+    if (cands.length > 0) {
+      return {
+        book_id: null,
+        status: 'candidates',
+        candidates: cands.map(b => ({
+          id: b.id, title: b.title, author: b.author ?? '',
+          publisher: b.publisher ?? '', material_type: b.material_type ?? 'picture_book',
+          published_year: b.published_year ?? null, is_active: b.is_active ?? true,
+        })),
+      }
+    }
+  }
+
+  // ③ 仮登録する
+  const created = {
+    id: crypto.randomUUID(),   // 実DBと同じくUUID（isDatabaseBook が真になる）
+    title: String(title).trim(),
+    author, illustrator, publisher,
+    isbn13,
+    published_year: publishedYear,
+    material_type: materialType,
+    is_active: false,
+  }
+  localStorage.setItem(
+    MOCK_PROVISIONAL_BOOKS_KEY, JSON.stringify([...provisional, created]))
+  return { book_id: created.id, status: 'created', candidates: [] }
 }

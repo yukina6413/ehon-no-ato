@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   MATERIAL_TYPES, materialTypeLabel, isMaterialType,
   normalizeIsbn, normalizeTitleKey, normalizePersonKey,
-  toCatalogWork, dedupeKey, findDuplicateCandidates,
+  toCatalogWork, dedupeKey, findDuplicateCandidates, detectMaterialType,
 } from './normalize'
 
 // 数千冊の作品カタログを扱う土台。
@@ -152,5 +152,19 @@ describe('findDuplicateCandidates（自動で同一と断定しない）', () =>
   it('既存が空でも落ちない', () => {
     expect(findDuplicateCandidates({ title: 'あ' }, [])).toEqual([])
     expect(findDuplicateCandidates({ title: 'あ' })).toEqual([])
+  })
+})
+
+describe('detectMaterialType：紙芝居と分かるときだけ判定する', () => {
+  it('★ 書名に紙芝居とあれば紙芝居にする（表記ゆれも見る）', () => {
+    expect(detectMaterialType('紙芝居 おおきなかぶ')).toBe('kamishibai')
+    expect(detectMaterialType('かみしばい おむすびころりん')).toBe('kamishibai')
+    expect(detectMaterialType('おおきなかぶ', '紙しばいシリーズ')).toBe('kamishibai')
+  })
+
+  it('★ 判定できないときは決めつけずnullを返す（利用者に選んでもらう）', () => {
+    expect(detectMaterialType('ぐりとぐら')).toBeNull()
+    expect(detectMaterialType('')).toBeNull()
+    expect(detectMaterialType(null, undefined)).toBeNull()
   })
 })

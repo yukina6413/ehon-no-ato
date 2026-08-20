@@ -5,7 +5,10 @@ import {
   mockSearchBooksByState,
   loadMockPracticeLogs,
   saveMockPracticeLog,
+  loadMockProvisionalBooks,
+  mockCreateProvisionalBook,
 } from './mockData'
+import { toCatalogWork, isMaterialType } from './catalog/normalize'
 
 const DATA_SOURCE = import.meta.env.VITE_DATA_SOURCE ?? 'mock'
 export const isMock = DATA_SOURCE !== 'supabase'
@@ -205,7 +208,10 @@ export async function getBookById(id) {
   if (!id) return null
   if (isMock) {
     const b = MOCK_BOOKS[id]
-    return b ? { ...b, id: b.book_id } : null
+    if (b) return { ...b, id: b.book_id }
+    // その場で追加した作品も引けるようにする（記録画面がbook_idから書名を復元するため）
+    const p = loadMockProvisionalBooks().find(x => x.id === id)
+    return p ? { ...p, book_id: p.id } : null
   }
   requireSupabase()
   const { data, error } = await supabase
@@ -410,4 +416,89 @@ export async function getPracticeLogsByMonth(year, month) {
     ...row,
     book_title: row.books?.title ?? '',
   }))
+}
+
+// ──── 未登録作品をその場で追加する（仮登録）────
+// 【重要】フロントエンドから books へ直接INSERTしない。
+//   books の書き込みは管理者だけに限られており（books_admin_write）、
+//   利用者が作品を追加できる唯一の入口が create_provisional_book RPC。
+//   RPCの中で is_active=false を強制し、追加者は非公開の book_contributions に記録する
+//   （supabase/migrations/010_provisional_books_rpc.sql）。
+//
+// 返り値は RPC と同じ3つの状態：
+//   'existing'   … ISBNが一致する作品が既にあった。その book_id で記録に進む
+//   'created'    … 新しく仮登録した。その book_id で記録に進む
+//   'candidates' … 書名が近い作品がある。作らずに候補を返す（利用者が選ぶ）
+export const PROVISIONAL_BOOK_STATUS = {
+  EXISTING:   'existing',
+  CREATED:    'created',
+  CANDIDATES: 'candidates',
+}
+
+// RPCが raise exception で返す、利用者にそのまま見せてよいエラー。
+// これ以外（通信断・権限・想定外）は、内部の文言を見せずに共通の案内にする。
+const RPC_USER_MESSAGE_CODES = new Set([
+  '28000',   // ログインが必要
+  '22023',   // 入力が足りない
+  '54000',   // 1日の追加上限
+])
+
+function provisionalBookError(error) {
+  const known = RPC_USER_MESSAGE_CODES.has(String(error?.code ?? '')) && error?.message
+  const err = new Error(known
+    ? error.message
+    : '作品を追加できませんでした。通信の状態をご確認のうえ、もう一度お試しください。')
+  err.code  = error?.code
+  err.cause = error
+  return err
+}
+
+/**
+ * 未登録作品を仮登録する。
+ * @param work        CatalogWork（title と materialType は必須）
+ * @param forceNew    候補を見たうえで「どれでもない」と選んだとき true
+ * @returns { status, bookId, candidates }
+ */
+export async function createProvisionalBook(work, { forceNew = false } = {}) {
+  const w = toCatalogWork(work)
+  if (!w.title) {
+    throw new Error('タイトルを入力してください')
+  }
+  // 種別は重複判定の鍵になるため、既定値で勝手に補わず、選ばれていることを確かめる
+  if (!isMaterialType(work?.materialType)) {
+    throw new Error('作品の種類（絵本／紙芝居）を選んでください')
+  }
+
+  if (isMock) {
+    const r = mockCreateProvisionalBook({
+      title: w.title, materialType: w.materialType,
+      author: w.author, illustrator: w.illustrator, publisher: w.publisher,
+      isbn13: w.isbn13, publishedYear: w.publishedYear, forceNew,
+    })
+    return { status: r.status, bookId: r.book_id, candidates: r.candidates ?? [] }
+  }
+
+  requireSupabase()
+  const { data, error } = await supabase.rpc('create_provisional_book', {
+    p_title:          w.title,
+    p_material_type:  w.materialType,
+    p_author:         w.author       || null,
+    p_illustrator:    w.illustrator  || null,
+    p_publisher:      w.publisher    || null,
+    p_isbn:           w.isbn13       || null,
+    p_published_year: w.publishedYear,
+    p_force_new:      forceNew,
+  })
+  if (error) throw provisionalBookError(error)
+
+  // returns table(...) なので1行の配列で返る
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row?.status) {
+    throw provisionalBookError({ message: '作品の追加結果を確認できませんでした' })
+  }
+  return {
+    status:     row.status,
+    bookId:     row.book_id ?? null,
+    candidates: row.candidates ?? [],
+  }
 }

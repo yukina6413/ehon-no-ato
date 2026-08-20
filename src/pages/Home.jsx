@@ -4,6 +4,7 @@ import { Search, X, Heart, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Pe
 import {
   searchBooksByState, findStatesByText, searchBooksByKeyword, isDatabaseBook,
 } from '../lib/dataAdapter'
+import AddWorkPanel from '../components/AddWorkPanel'
 import {
   SEASONS, SEASON_THEMES_FULL, NURSERY_EVENT_GROUPS,
   getSeasonCandidates, getHolidayCandidates,
@@ -355,6 +356,9 @@ export default function Home() {
 
   // ① 絵本・紙芝居を探す（実DBを書名・著者で検索する）
   const [searchQuery,   setSearchQuery]   = useState('')
+  // 実際に検索した言葉。入力欄をあとから書き換えられても、
+  // 「この作品を追加する」で使う書名がずれないように分けて持つ。
+  const [searchedQuery, setSearchedQuery] = useState('')
   const [searchResults, setSearchResults] = useState(null)
   const [searchLoading, setSearchLoading] = useState(false)
   const [searchError,   setSearchError]   = useState(null)
@@ -365,6 +369,7 @@ export default function Home() {
     setSearchLoading(true)
     setSearchError(null)
     setSearchResults(null)
+    setSearchedQuery(query)
     try {
       // 0件でもサンプルで埋めない。実際に登録されている絵本だけを出す。
       setSearchResults(await searchBooksByKeyword(query))
@@ -827,11 +832,16 @@ export default function Home() {
             <p className="text-xs text-red-500 mt-3 text-center">{searchError}</p>
           )}
           {searchResults && !searchLoading && !searchError && (
-            searchResults.length === 0
-              ? <p className="text-xs text-[#8A8A85] mt-3 text-center">
-                  この言葉に当てはまる絵本は、まだ登録されていません
-                </p>
-              : <ResultsBlock books={searchResults} label="登録されている絵本" onTap={setSelectedBook} />
+            <>
+              {searchResults.length === 0
+                ? <p className="text-xs text-[#8A8A85] mt-3 text-center">
+                    この言葉に当てはまる絵本は、まだ登録されていません
+                  </p>
+                : <ResultsBlock books={searchResults} label="登録されている絵本" onTap={setSelectedBook} />}
+              {/* まだ登録されていない絵本・紙芝居を、その場で追加してそのまま記録できるようにする。
+                  0件のときだけでなく、部分一致で別の絵本が出たときも追加できる必要がある。 */}
+              <AddWorkPanel query={searchedQuery} />
+            </>
           )}
         </div>
 

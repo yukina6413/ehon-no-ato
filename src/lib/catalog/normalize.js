@@ -157,3 +157,19 @@ export function findDuplicateCandidates(work, existingWorks = []) {
   }
   return out
 }
+
+// ──── 作品種別の自動判定 ────
+// 「絵本」と「紙芝居」は、書誌情報だけでは見分けられないことが多い。
+// 確実に紙芝居と分かるときだけ判定し、分からないときは null を返して
+// 利用者に選んでもらう（推測で決めない。種別は重複判定の鍵にもなるため）。
+const KAMISHIBAI_PATTERN = /紙芝居|紙しばい|かみしばい|カミシバイ/
+
+/**
+ * 書名・シリーズ名などから紙芝居かどうかを判定する。
+ * 返り値： 'kamishibai' … 紙芝居と分かった
+ *          null         … 判定できない（利用者に選んでもらう）
+ */
+export function detectMaterialType(...texts) {
+  const joined = texts.filter(Boolean).map(String).join(' ').normalize('NFKC')
+  return KAMISHIBAI_PATTERN.test(joined) ? MATERIAL_TYPES.KAMISHIBAI : null
+}
