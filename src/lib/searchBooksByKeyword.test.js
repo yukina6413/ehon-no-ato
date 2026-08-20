@@ -25,7 +25,10 @@ function makeSupabaseMock({ titleRows = [], authorRows = [], error = null } = {}
     }
     return b
   }
-  return { supabase: { from: () => builder() }, calls }
+  // 検索しただけで匿名ユーザーを作らないことを前提にしたモック。
+  // セッションが無いので「自分が追加した作品」の問い合わせは行われない。
+  const auth = { getSession: async () => ({ data: { session: null }, error: null }) }
+  return { supabase: { from: () => builder(), auth }, calls }
 }
 
 const UUID_A = '22222222-0000-0000-0000-000000000002'

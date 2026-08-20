@@ -83,3 +83,32 @@ describe('ホーム：サンプル絵本を通常画面に出さない', () => {
     expect(src).toContain('id: b.book_id')   // RPCが返す列名。ここが変わると記録できなくなる
   })
 })
+
+// 「自分が追加した作品」を、公開作品と分けて出す。
+// ただし管理側の状態（未公開・確認待ち等）は利用者画面に出さない。
+describe('ホーム：自分が追加した作品の出し分け', () => {
+  // コメント行は利用者に見えないため、判定から外す
+  function visibleSource() {
+    return source()
+      .replace(/\/\*[\s\S]*?\*\//g, '')   // ブロックコメント（JSXのコメントを含む）
+      .replace(/^\s*\/\/.*$/gm, '')       // 行頭からの行コメント
+  }
+
+  it('公開作品と自分が追加した作品を、別の見出しで出す', () => {
+    const src = visibleSource()
+    expect(src).toContain('登録されている絵本')
+    expect(src).toContain('自分が追加した作品')
+    expect(src).toContain('addedByMe')
+  })
+
+  it('★ 管理者向けの状態を利用者画面に出さない', () => {
+    const src = visibleSource()
+    for (const word of ['未公開', '確認待ち', '仮登録', 'is_active']) {
+      expect(src).not.toContain(word)
+    }
+    const html = render()
+    for (const word of ['未公開', '確認待ち', '仮登録']) {
+      expect(html).not.toContain(word)
+    }
+  })
+})

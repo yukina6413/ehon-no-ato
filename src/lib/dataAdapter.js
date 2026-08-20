@@ -158,6 +158,15 @@ function stripLikeWildcards(text) {
   return String(text).replace(/[%_]/g, '')
 }
 
+// 書名・著者に検索語が含まれるか。
+// 公開作品の検索はDB側の ilike で絞るが、「自分が追加した作品」は件数が少なく、
+// 取得してから同じ基準でここで絞る（問い合わせを増やさないため）。
+function matchesKeyword(row, raw) {
+  const q = String(raw).toLowerCase()
+  return String(row?.title ?? '').toLowerCase().includes(q)
+      || String(row?.author ?? '').toLowerCase().includes(q)
+}
+
 // 検索結果を画面が使う形に整える（子どもの姿検索の変換と同じ形にそろえる）
 function toBookCard(row) {
   return {
@@ -174,16 +183,53 @@ function toBookCard(row) {
   }
 }
 
+// ──── 自分が追加した作品 ────
+// is_active は「みんなに公開してよいか」の旗であって、「本人が使ってよいか」ではない。
+// 公開前でも、追加した本人は通常の検索から選んで記録できるようにする。
+//
+// 【他の利用者の追加分が混ざらない理由】
+//   books ではなく book_contributions から辿る。この表のRLS(contrib_select_own)は
+//   created_by = auth.uid() の行しか読ませないため、アプリ側で絞り込まなくても
+//   構造上、他人が追加した作品は取得できない。
+//
+// 【検索しただけで匿名ユーザーを増やさない】
+//   ここでは ensureAnonymousSession を呼ばない。既にセッションがあるときだけ確認する。
+async function searchMyAddedBooks(raw) {
+  const { data: sessionData } = await supabase.auth.getSession()
+  if (!sessionData?.session?.user) return []   // 未ログイン＝自分の追加分は無い
+
+  const { data, error } = await supabase
+    .from('book_contributions')
+    .select(`book_id, books(${BOOK_CARD_COLUMNS})`)
+    .order('created_at', { ascending: false })
+    .limit(200)
+  if (error) throw error
+
+  return (data ?? [])
+    .map(row => (Array.isArray(row.books) ? row.books[0] : row.books))
+    .filter(book => book && matchesKeyword(book, raw))
+    .map(book => ({ ...toBookCard(book), addedByMe: true }))
+}
+
+// 公開作品と「自分が追加した作品」を、同じ作品が二重に出ないようにまとめる。
+// 公開作品として出たものを正とする（公開時に情報が整えられているため）。
+function mergeSearchResults(publicBooks, myBooks) {
+  const seen = new Set(publicBooks.map(b => b.id))
+  return [...publicBooks, ...myBooks.filter(b => !seen.has(b.id))]
+}
+
 export async function searchBooksByKeyword(query) {
   const raw = String(query ?? '').trim()
   if (!raw) return []
 
   if (isMock) {
-    const q = raw.toLowerCase()
-    return Object.values(MOCK_BOOKS)
-      .filter(b =>
-        b.title?.toLowerCase().includes(q) || b.author?.toLowerCase().includes(q))
+    const publicBooks = Object.values(MOCK_BOOKS)
+      .filter(b => matchesKeyword(b, raw))
       .map(b => toBookCard({ ...b, id: b.book_id }))
+    const myBooks = loadMockProvisionalBooks()
+      .filter(b => matchesKeyword(b, raw))
+      .map(b => ({ ...toBookCard(b), addedByMe: true }))
+    return mergeSearchResults(publicBooks, myBooks)
   }
 
   requireSupabase()
@@ -200,7 +246,17 @@ export async function searchBooksByKeyword(query) {
   for (const row of [...(byTitle.data ?? []), ...(byAuthor.data ?? [])]) {
     merged.set(row.id, row)   // 同じ絵本が両方に出ても1件にする
   }
-  return [...merged.values()].map(toBookCard)
+  const publicBooks = [...merged.values()].map(toBookCard)
+
+  // 自分の追加分の取得に失敗しても、公開作品の検索結果は返す。
+  // （検索そのものが止まると、記録に入れなくなるため）
+  let myBooks = []
+  try {
+    myBooks = await searchMyAddedBooks(raw)
+  } catch (err) {
+    console.error('自分が追加した作品を取得できませんでした:', err)
+  }
+  return mergeSearchResults(publicBooks, myBooks)
 }
 
 // ──── 絵本1冊の取得（book_id から再取得。画面遷移でstateが消えても復元できるようにする）────

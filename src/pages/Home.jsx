@@ -165,9 +165,12 @@ function BookDetailModal({ book, onClose, onWantToRead }) {
             <p className="text-xs text-[#8A8A85] mt-0.5">
               {[book.author, book.publisher].filter(Boolean).join('・')}
             </p>
-            <span className="inline-block mt-2 text-[10px] bg-[#EAF5EC] text-green-700 rounded-full px-2 py-0.5">
-              対象年齢：{book.age}
-            </span>
+            {/* 追加したばかりの作品は対象年齢が空。中身の無い見出しを出さない */}
+            {book.age && (
+              <span className="inline-block mt-2 text-[10px] bg-[#EAF5EC] text-green-700 rounded-full px-2 py-0.5">
+                対象年齢：{book.age}
+              </span>
+            )}
           </div>
         </div>
 
@@ -329,7 +332,10 @@ function HomeBookCard({ book, onTap }) {
         style={{ background: book.cover }}>{book.emoji}</div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold text-[#2C2C2A] truncate">{book.title}</p>
-        <p className="text-[11px] text-[#8A8A85]">{book.author}・{book.age}</p>
+        {/* 著者・年齢が空の作品もあるため、あるものだけを並べる（「・」だけが残らないように） */}
+        <p className="text-[11px] text-[#8A8A85]">
+          {[book.author, book.age].filter(Boolean).join('・')}
+        </p>
       </div>
       <ChevronRight size={14} className="text-[#B0B0A8] flex-shrink-0" />
     </button>
@@ -380,6 +386,11 @@ export default function Home() {
       setSearchLoading(false)
     }
   }
+
+  // 検索結果は「登録されている絵本」と「自分が追加した作品」に分けて出す。
+  // どちらも同じように選んで記録できる（導線は変えない）。
+  const publicResults  = searchResults?.filter(b => !b.addedByMe) ?? []
+  const myAddedResults = searchResults?.filter(b =>  b.addedByMe) ?? []
 
   // ② 子どもの姿・保育士の思いから探す
   //    補助候補・自由入力のどちらもテキストとして扱い、findStatesByText で
@@ -837,7 +848,19 @@ export default function Home() {
                 ? <p className="text-xs text-[#8A8A85] mt-3 text-center">
                     この言葉に当てはまる絵本は、まだ登録されていません
                   </p>
-                : <ResultsBlock books={searchResults} label="登録されている絵本" onTap={setSelectedBook} />}
+                : <>
+                    {publicResults.length > 0 && (
+                      <ResultsBlock books={publicResults} label="登録されている絵本"
+                        onTap={setSelectedBook} />
+                    )}
+                    {/* 自分で追加した作品。まだ全員には公開されていないが、
+                        追加した本人は通常どおり選んで記録できる。
+                        「未公開」「確認待ち」など管理側の言葉は出さない。 */}
+                    {myAddedResults.length > 0 && (
+                      <ResultsBlock books={myAddedResults} label="自分が追加した作品"
+                        onTap={setSelectedBook} />
+                    )}
+                  </>}
               {/* まだ登録されていない絵本・紙芝居を、その場で追加してそのまま記録できるようにする。
                   0件のときだけでなく、部分一致で別の絵本が出たときも追加できる必要がある。 */}
               <AddWorkPanel query={searchedQuery} />
