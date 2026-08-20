@@ -38,7 +38,7 @@
 | 007_fix_search_rpc_overload.sql | **現行プロジェクトの修復（未実行）** | 重複したsearch_books_by_state(4引数版)を除去し3引数版に統一+author/summary返却+calendar_view作成 |
 | 008_practice_log_missing_fields.sql | **適用済み（2026-08-11 Master実行）** | practice_logsに select_reason / selected_by / after_type / episode / insight / age_groups / scene_activities を追加（列追加のみ・非破壊） |
 | 009_material_type.sql | **案・未実行** | booksに material_type（picture_book / kamishibai）を追加。紙芝居を正式な作品種別にする |
-| 010_provisional_books_rpc.sql | **案・未実行** | 未登録作品をその場で仮登録するRPC。booksへの直接INSERT権限は開放しない。009が前提 |
+| 010_provisional_books_rpc.sql | **案・未実行** | 未登録作品をその場で仮登録するRPC＋非公開の book_contributions。booksへの直接INSERT権限は開放しない。009が前提 |
 | 011_book_sources.sql | **案・未実行** | 作品と外部書誌提供元の対応を1対多で持つテーブル |
 
 ## 009〜011について（作品カタログ基盤）
@@ -49,7 +49,10 @@
 - **009**：`material_type` を `text + CHECK` で追加。既存5冊は default で `picture_book` になる
 - **010**：匿名認証を使っているため、`to authenticated` での直接INSERT開放は
   「誰でも書ける」に等しい。そこで `security definer` のRPCを1つだけ公開し、
-  `is_active=false` と `created_by=auth.uid()` を関数側で強制する
+  `is_active=false` を関数側で強制する。
+  **追加者のIDは `books` に持たせない**（booksは誰でも読めるため、Data API経由で
+  他利用者のUUIDが漏れる）。非公開の `book_contributions` に分離し、
+  一般利用者は自分の行しか読めないようにする
 - **011**：同じ作品が複数の提供元（NDL・openBD等）に存在するため、
   `books.source` の単一列ではなく `book_sources` の1対多にする
 

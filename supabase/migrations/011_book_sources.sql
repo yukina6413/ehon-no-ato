@@ -34,9 +34,15 @@ create table if not exists public.book_sources (
   created_at timestamptz not null default now(),
 
   -- 同じ提供元の同じレコードが2つの作品に結び付かないようにする
-  constraint uq_book_sources_provider_source unique (provider, source_id),
-  -- 1つの作品につき、同じ提供元の対応は1つ
-  constraint uq_book_sources_book_provider   unique (book_id, provider)
+  constraint uq_book_sources_provider_source unique (provider, source_id)
+
+  -- 【unique (book_id, provider) は付けない】
+  --   同じ作品に、同じ提供元の書誌レコードが複数対応することがあるため。
+  --   例）1作品 ├ NDLレコードA（単行本）
+  --            ├ NDLレコードB（大型版）
+  --            └ openBDレコードA
+  --   ここを一意にすると、あとから見つかったレコードを記録できなくなる。
+  --   引き方の速さは下の索引で確保する。
 );
 
 comment on table  public.book_sources is
@@ -45,8 +51,9 @@ comment on column public.book_sources.provider   is '書誌の提供元。将来
 comment on column public.book_sources.source_id  is '提供元での識別子。再取得・更新に使う';
 comment on column public.book_sources.raw        is '取得時の生データ。利用条件を確認するまでは保存しない';
 
-create index if not exists idx_book_sources_book     on public.book_sources (book_id);
-create index if not exists idx_book_sources_provider on public.book_sources (provider, fetched_at desc);
+-- 「この作品の、この提供元の書誌」を引くための索引（一意ではない＝複数レコード可）
+create index if not exists idx_book_sources_book_provider on public.book_sources (book_id, provider);
+create index if not exists idx_book_sources_provider      on public.book_sources (provider, fetched_at desc);
 
 -- ------------------------------------------------------------
 -- RLS：books と同じ考え方

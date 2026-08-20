@@ -38,14 +38,19 @@ end $$;
 comment on column public.books.material_type is
   '作品種別。picture_book=絵本 / kamishibai=紙芝居。紙芝居は絵本の付属ではなく対等な種別として扱う';
 
--- 種別で絞る検索を将来足すための索引（件数が増えたときに効く）
-create index if not exists idx_books_material_type on public.books (material_type);
+-- 【索引は今回作らない】
+--   material_type は 'picture_book' / 'kamishibai' の2値しかない。
+--   数千冊規模では、この列だけの索引はプランナに使われにくく（低カーディナリティ）、
+--   書き込みのたびに更新される分だけ損になりやすい。
+--   「絵本だけ／紙芝居だけ」で絞る検索を実際に足し、遅いと分かった時点で、
+--   そのときの検索条件に合わせた複合索引を作る方が確実。
+--   例（将来・必要になってから）:
+--     create index on public.books (material_type, title) where is_active;
 
 -- ============================================================
 -- ロールバック（元に戻す場合）
--- ※ 追加した列と索引を落とすだけ。元からあった列・データは無傷
+-- ※ 追加した列とCHECK制約を落とすだけ。元からあった列・データは無傷
 -- ------------------------------------------------------------
--- drop index if exists public.idx_books_material_type;
 -- alter table public.books drop constraint if exists chk_books_material_type;
 -- alter table public.books drop column if exists material_type;
 -- ============================================================

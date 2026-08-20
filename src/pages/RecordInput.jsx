@@ -355,7 +355,7 @@ function Step4({ form, setForm }) {
 export default function RecordInput() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, signInAnon } = useAuth()
+  const { ensureSession } = useAuth()
   // ① 検索・絵本詳細の「この絵本を記録する」から渡された絵本情報を最優先で反映する。
   //    bookId があれば保存時にタイトル一致検索を省いて確実にその絵本に紐づく。
   // ② 引き継ぎが無い場合、下書き（sessionStorage）から入力途中の内容とページ番号を戻す。
@@ -427,11 +427,11 @@ export default function RecordInput() {
     setSaveError(null)
     setCandidates(null)
     try {
-      // MVP：メール/OTP入力を求めず、初回保存時に匿名ユーザーを作成する。
-      // signInAnonymously 完了後は supabase セッションが有効になり、
-      // savePracticeLog の user_id 既定値 auth.uid() が匿名ユーザーのIDになる。
-      if (!isMock && !user) {
-        await signInAnon()
+      // MVP：メール/OTP入力を求めず、必要になった時点で匿名ユーザーを用意する。
+      // セッションが有効になると savePracticeLog の user_id 既定値 auth.uid() が
+      // 匿名ユーザーのIDになる。既にセッションがあれば新しく作らない。
+      if (!isMock) {
+        await ensureSession()
       }
       // 「読む前/読んだ後の子どもの姿」は記録画面から外したため、
       // practice_log_states への新規登録は行わない（テーブルと既存データはそのまま残す）。
@@ -462,7 +462,7 @@ export default function RecordInput() {
     } finally {
       setSaving(false)
     }
-  }, [saving, form, navigate, user, signInAnon])
+  }, [saving, form, navigate, ensureSession])
 
   // 候補から選ばれた絵本で保存し直す
   function chooseBook(book) {

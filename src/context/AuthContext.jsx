@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { isMock } from '../lib/dataAdapter'
+import { ensureAnonymousSession } from '../lib/ensureAnonymousSession'
 
 const AuthContext = createContext(null)
 
@@ -25,16 +26,15 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  // MVP：画面上のログイン操作なしで記録できるよう、匿名ユーザーを作成する。
-  // 既にセッションがあれば作らずそのユーザーを使う。将来メール登録へ引き継ぐ土台。
-  async function signInAnon() {
+  // MVP：画面上のログイン操作なしで使えるよう、必要になった時点で匿名ユーザーを用意する。
+  // 記録の保存前と、未登録作品の追加(create_provisional_book)前の両方から呼ぶ。
+  // 既にセッションがあれば新しい匿名ユーザーを作らない（ensureAnonymousSession が保証）。
+  async function ensureSession() {
     if (isMock) return MOCK_USER
     if (!supabase) return null
-    if (user) return user
-    const { data, error } = await supabase.auth.signInAnonymously()
-    if (error) throw error
-    setUser(data.user ?? null)  // onAuthStateChange でも更新されるが即時反映のため
-    return data.user ?? null
+    const signedIn = await ensureAnonymousSession(supabase)
+    if (signedIn) setUser(signedIn)   // onAuthStateChange でも更新されるが即時反映のため
+    return signedIn
   }
 
   async function signOut() {
@@ -45,7 +45,11 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signOut, signInAnon }}>
+    <AuthContext.Provider value={{
+      user, loading, signOut,
+      ensureSession,
+      signInAnon: ensureSession,   // 旧名。既存の呼び出しを壊さないため残す
+    }}>
       {children}
     </AuthContext.Provider>
   )

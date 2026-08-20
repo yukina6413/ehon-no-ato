@@ -290,6 +290,70 @@
 - DB変更：**なし**
 - 決めた人：Master（方針） / Claude Code（調査・実装）
 
+## 2026-08-18 未登録作品の追加：匿名ユーザーに許可する（A案採用）
+
+- 決定（Master）：**匿名ユーザーも `create_provisional_book()` を実行できる。これは意図的な仕様。**
+- 事実：Supabaseの匿名認証(`signInAnonymously`)で作られた利用者は、JWTの `role` が
+  `"authenticated"`（`is_anonymous: true` クレーム付き）。したがって
+  `grant execute ... to authenticated` は**匿名ユーザーを含む**。
+  この点を曖昧にしたままmigrationを実行しない、という判断のもとで明示的に許可した
+- 理由：「えほんのあと」はログイン操作なしで使えることが前提で、現在の利用者は全員が匿名。
+  匿名を拒否すると「DBにない新刊・紙芝居でも、その場で追加して記録できる」という
+  基本要件がそもそも成立しない
+- 拒否したくなった場合の手段も010にコメントで残した
+  （`(auth.jwt() ->> 'is_anonymous')::boolean` で判定できる。現時点では**あえて入れない**）
+- **作成上限：1利用者あたり1日10件**（MVPの目安）。
+  ただし匿名アカウントを作り直されれば回避できるため、
+  **本格公開時の不正利用対策とは別物**であることを記録しておく
+  （レート制限・通報・管理者による一括削除などが別途必要）
+- 匿名セッションの保証を `src/lib/ensureAnonymousSession.js` に共通化した。
+  記録保存の直前と、未登録作品の追加の直前の両方から呼ぶ。
+  実際のセッションを毎回確認し（Reactのstateは古いことがある）、
+  同時に呼ばれても匿名ユーザーを1人しか作らない
+- 決めた人：Master（方針決定） / Claude Code（実装）
+
+## 2026-08-20 追加者のIDを books に持たせない（book_contributions へ分離）
+
+- **問題（Master指摘）**：`books` は `books_read_all`（`select to anon, authenticated
+  using (true)`）で誰でも読める。そこに `created_by = auth.uid()` を置くと、
+  画面に出さなくても **Data APIを直接叩けば他利用者のUUID（匿名ユーザーIDを含む）を
+  取得できてしまう**。「利用者画面に出さない」はDB上の秘匿にはならない
+- 決定：**`books` には作品そのものの情報だけを置く。**追加者との対応は
+  非公開の `public.book_contributions`（book_id / created_by / created_at）に分離する
+  - 一般利用者は **自分の行しか読めない**（`created_by = auth.uid()`）→ 他人のUUIDは取れない
+  - 管理者は全件を確認できる（`is_admin()`）
+  - **INSERTポリシーは作らない**。書けるのは `create_provisional_book()`（security definer）だけ
+  - 1日10件の上限判定も、この非公開テーブルで数える
+  - 既存の `books_read_all` は**変更しない**
+- 残る前提：`is_active=false` の仮作品そのもの（書名など）は誰でも読める。
+  これは既知の「is_activeはセキュリティ境界ではない」の範囲内で、書誌は非機微なため許容する
+- SECURITY DEFINER の安全対策：`set search_path = ''` に固定し（呼び出し側の
+  search_pathを引き継がない）、`public.books` 等をすべて完全修飾した。
+  `normalize_isbn13` / `book_title_key` にも同じ固定を適用
+- 権限表記の明確化：「anonには渡さない」ではなく
+  **「未認証のanon roleにはEXECUTEを付与しない。Supabase匿名認証の利用者は
+  authenticated roleなので、意図的にRPC利用を許可する」**と010に明記した
+- 決めた人：Master（問題の指摘・方針） / Claude Code（設計・実装）
+
+## 2026-08-18 作品カタログのDB設計を修正（ISBN一意制約・book_sources）
+
+- **ISBNの部分ユニーク制約を010に前倒しで入れる**：利用者が仮作品を作れるようになるため、
+  重複防止の重要度が上がった。`create unique index ... on books (isbn) where isbn is not null`。
+  ISBNが無い作品（古い紙芝居等）は何冊でも登録できる。
+  前提として `books.isbn` には常にISBN-13に正規化した値だけを入れる
+  （RPCは `normalize_isbn13()` を通す。一括投入スクリプトでも必須）
+- **同時実行の競合対策**：ISBN一致チェックの直後に他の利用者が同じ作品を作ることがある。
+  `unique_violation` を捕まえて既存作品を返し、利用者にはエラーを見せない
+- **book_sources から `unique (book_id, provider)` を外す**：
+  同じ作品に同じ提供元の書誌レコードが複数対応しうるため
+  （1作品に NDLレコードA・NDLレコードB・openBDレコードA のような状態を許す）。
+  代わりに `index (book_id, provider)` を付ける。
+  `unique (provider, source_id)` は維持する
+- **009から material_type の単独索引を外す**：2値しかない低カーディナリティ列で、
+  プランナに使われにくく書き込みコストだけ増える。列＋CHECK制約を優先し、
+  実際に遅いと分かってから検索条件に合わせた複合索引を作る
+- 決めた人：Master（判断） / Claude Code（設計・実装）
+
 ## 2026-08-18 is_active と将来の行事検索についての申し送り
 
 - **`is_active` はRLS上のセキュリティ境界ではない**。`books_read_all` は
