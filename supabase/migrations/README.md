@@ -37,8 +37,8 @@
 | 006_create_calendar_view.sql | 履歴（未実行） | カレンダー用view（表示専用） |
 | 007_fix_search_rpc_overload.sql | **現行プロジェクトの修復（未実行）** | 重複したsearch_books_by_state(4引数版)を除去し3引数版に統一+author/summary返却+calendar_view作成 |
 | 008_practice_log_missing_fields.sql | **適用済み（2026-08-11 Master実行）** | practice_logsに select_reason / selected_by / after_type / episode / insight / age_groups / scene_activities を追加（列追加のみ・非破壊） |
-| 009_material_type.sql | **案・未実行** | booksに material_type（picture_book / kamishibai）を追加。紙芝居を正式な作品種別にする |
-| 010_provisional_books_rpc.sql | **案・未実行** | 未登録作品をその場で仮登録するRPC＋非公開の book_contributions。booksへの直接INSERT権限は開放しない。009が前提 |
+| 009_material_type.sql | **適用済み（2026-08-20 Master実行）** | booksに material_type（picture_book / kamishibai）を追加。紙芝居を正式な作品種別にする |
+| 010_provisional_books_rpc.sql | **適用済み（2026-08-21 Master実行）** | 未登録作品をその場で仮登録するRPC＋非公開の book_contributions。booksへの直接INSERT権限は開放しない。009が前提 |
 | 011_book_sources.sql | **案・未実行** | 作品と外部書誌提供元の対応を1対多で持つテーブル |
 
 ## 009〜011について（作品カタログ基盤）

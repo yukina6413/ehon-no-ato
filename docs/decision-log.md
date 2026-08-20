@@ -312,6 +312,22 @@
   同時に呼ばれても匿名ユーザーを1人しか作らない
 - 決めた人：Master（方針決定） / Claude Code（実装）
 
+## 2026-08-21 RPCの権限は anon を明示的にREVOKEする
+
+- **事実（実DBで判明）**：009・010を適用後に権限を確認したところ、
+  `create_provisional_book()` に **anon の EXECUTE が直接付与されたまま残っていた**。
+  実DB側では `revoke execute ... from anon` を実行して修正済み
+  （確認結果：`authenticated_can_execute = true` / `anon_can_execute = false`）
+- **原因**：`create or replace function` は既存の権限設定を引き継ぐ。
+  また **PUBLIC への付与と anon への直接付与は別物**のため、
+  `revoke all ... from public` だけでは anon の直接権限は剥がれない
+- **対応**：010の権限設定を次の3手順にした。将来この状態が再現しないようにする
+  1. `revoke all    ... from public`
+  2. `revoke execute ... from anon`   ← 追加
+  3. `grant  execute ... to authenticated`
+  あわせて適用後に検算するSELECT（`has_function_privilege`）を010にコメントで残した
+- 決めた人：Master（実DBでの発見・修正） / Claude Code（migration反映）
+
 ## 2026-08-20 追加者のIDを books に持たせない（book_contributions へ分離）
 
 - **問題（Master指摘）**：`books` は `books_read_all`（`select to anon, authenticated

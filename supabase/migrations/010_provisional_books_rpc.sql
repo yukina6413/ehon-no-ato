@@ -335,13 +335,46 @@ comment on function public.create_provisional_book is
   'book_contributions に記録する。保育のタグ（care_points・seasonal_tags・'
   'event_tags・book_state_links）には触れない';
 
+-- ------------------------------------------------------------
+-- 権限の付与
+-- ------------------------------------------------------------
 -- 未認証の anon role には EXECUTE を付与しない。
 -- Supabase匿名認証の利用者は authenticated role なので、意図的に利用を許可する。
-revoke all on function public.create_provisional_book(text, text, text, text, text, text, int, boolean) from public;
-grant execute on function public.create_provisional_book(text, text, text, text, text, text, int, boolean) to authenticated;
+--
+-- 【anon を明示的に REVOKE する理由】
+--   `create or replace function` は既存の権限設定を引き継ぐ。
+--   そのため、以前のバージョンで anon に EXECUTE が付いていた場合、
+--   `revoke all ... from public` だけでは anon の「直接付与された権限」は消えない
+--   （PUBLIC への付与と、anon への直接付与は別物）。
+--   実際に実DBで anon の EXECUTE が残っていたため、明示的に剥がす。
+--   順序は「PUBLICから剥がす → anonから剥がす → authenticatedに付ける」。
+revoke all    on function public.create_provisional_book(
+  text, text, text, text, text, text, integer, boolean
+) from public;
 
-revoke all on function public.normalize_isbn13(text) from public;
-grant execute on function public.normalize_isbn13(text) to authenticated, anon;
+revoke execute on function public.create_provisional_book(
+  text, text, text, text, text, text, integer, boolean
+) from anon;
+
+grant  execute on function public.create_provisional_book(
+  text, text, text, text, text, text, integer, boolean
+) to authenticated;
+
+-- normalize_isbn13 は副作用が無く、値を整えるだけなので anon にも許可する
+revoke all    on function public.normalize_isbn13(text) from public;
+grant  execute on function public.normalize_isbn13(text) to authenticated, anon;
+
+-- ------------------------------------------------------------
+-- 権限の確認（適用後にこのSELECTで検算する）
+--   authenticated_can_execute = true / anon_can_execute = false を期待する
+-- ------------------------------------------------------------
+--   select
+--     has_function_privilege('authenticated',
+--       'public.create_provisional_book(text,text,text,text,text,text,integer,boolean)',
+--       'execute') as authenticated_can_execute,
+--     has_function_privilege('anon',
+--       'public.create_provisional_book(text,text,text,text,text,text,integer,boolean)',
+--       'execute') as anon_can_execute;
 
 -- ------------------------------------------------------------
 -- E. 権限の最終状態（確認用）
@@ -358,7 +391,7 @@ grant execute on function public.normalize_isbn13(text) to authenticated, anon;
 -- ※ 追加した関数・テーブル・列・索引を落とすだけ。
 --   元からあった列・データ・権限は無傷
 -- ------------------------------------------------------------
--- drop function if exists public.create_provisional_book(text, text, text, text, text, text, int, boolean);
+-- drop function if exists public.create_provisional_book(text, text, text, text, text, text, integer, boolean);
 -- drop function if exists public.book_title_key(text);
 -- drop function if exists public.normalize_isbn13(text);
 -- drop table if exists public.book_contributions;
