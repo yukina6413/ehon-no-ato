@@ -412,6 +412,8 @@ export async function savePracticeLog(formData, preStateIds = [], postStateIds =
   if (logError) throw logError
 
   // practice_log_states に挿入（pre / post）
+  // 「どの子どもの姿を見てこの絵本を選んだか」を pre として残す。
+  // 同じ姿が二重に入らないことは、DB側の unique (log_id, state_id, phase) が保証する。
   const stateRows = [
     ...(preStateIds  ?? []).map(sid => ({ log_id: logData.id, state_id: sid, phase: 'pre'  })),
     ...(postStateIds ?? []).map(sid => ({ log_id: logData.id, state_id: sid, phase: 'post' })),
@@ -420,7 +422,10 @@ export async function savePracticeLog(formData, preStateIds = [], postStateIds =
     const { error: statesErr } = await supabase
       .from('practice_log_states')
       .insert(stateRows)
-    if (statesErr) throw statesErr
+    // ここで例外にしない。記録本体（practice_logs）はすでに保存できている。
+    // 失敗を投げると画面にエラーが出て利用者が保存し直し、記録が二重に増えてしまう。
+    // 姿の紐づけは補助情報なので、取りこぼしてもその日の記録は失わせない。
+    if (statesErr) console.error('子どもの姿の紐づけを保存できませんでした:', statesErr)
   }
 
   return logData.id

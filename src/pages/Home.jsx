@@ -128,12 +128,15 @@ function BookDetailModal({ book, onClose, onWantToRead }) {
   const isDbBook = isDatabaseBook(book)
 
   // 記録画面へ絵本を引き継ぐ。bookId を渡すので、保存時に書名で探す必要がない。
+  // 子どもの姿から探して選んだ場合は stateId も渡し、「どの姿を見てこの本を選んだか」を
+  // 記録に残せるようにする（書名検索など、姿を経ていない導線では undefined のまま）。
   function recordThisBook() {
     navigate('/record', {
       state: {
         bookId:     book.id,
         bookTitle:  book.title,
         bookAuthor: book.author || '',
+        stateId:    book.stateId ?? null,
       },
     })
   }
@@ -411,9 +414,14 @@ export default function Home() {
         setConsultResults([])
         return
       }
-      const data = await searchBooksByState(matches[0].id, null, null)
+      // 実際に検索したのはこの1件（matches[0]）。結果を生んだ姿はこれで確定する。
+      const searchedState = matches[0]
+      const data = await searchBooksByState(searchedState.id, null, null)
       setConsultResults(data.map(b => ({
         id: b.book_id,
+        // どの子どもの姿から選ばれたかを本ごとに持つ。
+        // 画面全体で持つと、書名検索で選んだ本にも姿が付いてしまうため。
+        stateId: searchedState.id,
         title: b.title,
         author: b.author || '',
         age: b.age_min != null && b.age_max != null ? `${b.age_min}〜${b.age_max}歳` : '',

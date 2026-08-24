@@ -51,6 +51,7 @@ const INITIAL = {
   title:'', author:'', publisher:'',
   bookId: null,   // 検索・絵本詳細から引き継いだ実DBの絵本ID（手入力時はnull）
   materialType: null,   // 'picture_book' | 'kamishibai'。表示のみ。記録には保存しない
+  stateId: null,        // 「どの子どもの姿から選んだか」。practice_log_states に pre として保存する
   dateMode:'auto', dateManual: TODAY_ISO,
   ages:[], location:'園', scene:'', sceneActivities:[],
   selectedBy:'読み手', reason:'',   // 読み手が選んだときの「この絵本を選んだ理由」
@@ -383,6 +384,8 @@ export default function RecordInput() {
           bookId:    picked.bookId || null,
           // 表示用。practice_logs には保存しない（保存の正本は bookId）
           materialType: picked.bookMaterialType || null,
+          // 子どもの姿から探して来たときだけ入る。無ければ従来どおり記録だけを保存する。
+          stateId:   picked.stateId || null,
         },
         step: 0,
       }
@@ -450,9 +453,15 @@ export default function RecordInput() {
       if (!isMock) {
         await ensureSession()
       }
-      // 「読む前/読んだ後の子どもの姿」は記録画面から外したため、
-      // practice_log_states への新規登録は行わない（テーブルと既存データはそのまま残す）。
-      await savePracticeLog(overrideBookId ? { ...form, bookId: overrideBookId } : form)
+      // 「読んだ後にどのような姿になったか」は入力させないため post は空のまま。
+      // stateId が無い導線（書名検索・自分が追加した作品・本棚など）では
+      // pre も空配列になり、practice_log_states は作られない。
+      const preStateIds = form.stateId ? [form.stateId] : []
+      await savePracticeLog(
+        overrideBookId ? { ...form, bookId: overrideBookId } : form,
+        preStateIds,
+        [],
+      )
       try { sessionStorage.removeItem(DRAFT_KEY) } catch { /* ignore */ }  // 保存成功で下書きを消す
       const d = new Date()
       const dateStr = form.dateMode === 'auto'
