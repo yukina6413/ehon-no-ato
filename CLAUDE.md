@@ -20,15 +20,34 @@
 
 ## 作業開始時に確認すること
 
-1. `git status` / 現在のブランチ / 未コミットの変更（勝手に破棄しない）
-2. `docs/current-status.md`（既知の課題・矛盾点）
-3. 依頼内容に関係するページ・`src/lib/dataAdapter.js`・DBスキーマ（`supabase/migrations/`）
-4. 関連するテストの有無
+1. **`docs/ai-development-workflow.md`（必読・進め方の正本）**
+2. **`docs/project-profile.md`（必読・このリポジトリ固有の事実と既知制約）**
+3. `git status` / 現在のブランチ / 未コミットの変更（勝手に破棄しない）
+4. `docs/current-status.md`（既知の課題・矛盾点）
+5. 依頼内容に関係するページ・`src/lib/dataAdapter.js`・DBスキーマ（`supabase/migrations/`）
+6. 関連するテストの有無
 
 ## 修正の基本手順・完了条件・禁止事項
 
-→ **`docs/ai-development-rules.md`（必読）**：標準ループ、自動で進めてよいこと、
-必ず確認を取ること、完了条件をすべてここに定義している。
+→ **`docs/ai-development-workflow.md`（必読）**：全プロジェクト共通の進め方。
+リスク分類・停止条件・完了条件・Git運用をすべてここに定義している（正本）。
+→ **`docs/project-profile.md`（必読）**：このリポジトリ固有の技術構成・DB・認証・
+外部サービス・既知制約・lint baseline・保留課題（正本）。
+
+このうち、特に守るもの（詳細は上記2ファイル。ここには要点だけ置く）：
+
+- **A / B / C のリスク分類**を最初に判断する。迷ったら1つ上として扱う
+  （A＝画面まわり／B＝既存DBを使う新機能／C＝migration・RLS・RPC・認証・一括変換）
+- **Cは承認前に実装しない。**
+- **停止条件**に当たったら修正を重ねず、その場で止めて事実と推測を分けて報告する
+- **同種の不具合・手戻りが2回**続いたら、局所修正をやめて全体を監査する
+- **次回利用テスト**まで確認する（初回動作だけで完成にしない）
+- **mock → 実環境**の順で確認する。実環境を最初のデバッグ場所にしない
+- **実環境テストとcleanupをセット**にする。後回しにしない
+- **commitとpushを同じ判断にしない。push前で必ず止まる**
+
+※ `docs/ai-development-rules.md` は旧版（Legacy）。現在有効な正本は上記2ファイル。
+旧版は履歴・過去設計の参照用に残してあるだけで、作業手順としては参照しない。
 
 ## 技術構成・データベース
 
@@ -53,7 +72,7 @@ npm run build   # 本番ビルド
 ## 報告のルール
 
 - **事実と推測を分ける。** 「確認した事実」と「推測」を明記する
-  （詳細：`docs/ai-development-rules.md`）。
+  （詳細：`docs/ai-development-workflow.md` の「事実と推測を分ける」）。
 - **初心者にも分かる日本語で説明する。** 保育士・非エンジニアのMasterが読む前提で、
   専門用語を避けるか一言補足する。
 - 小さく可逆的な判断はいちいち確認を求めず、まとめて完了報告のときに説明する。
@@ -70,6 +89,7 @@ npm run build   # 本番ビルド
 `.claude/agents/` に `investigator`（調査専用・修正しない）、`implementer`（最小修正）、
 `verifier`（テスト・ビルド・回帰確認）、`product-guardian`（憲章との整合確認）を用意している。
 大きめの不具合対応では、まずinvestigatorで原因を特定してから修正に入ると事故が減る。
+リスク分類Cの作業では、実装前にinvestigatorとproduct-guardianを通す。
 
 ## 危険操作のガードレール（自動）
 
@@ -81,7 +101,7 @@ npm run build   # 本番ビルド
   デプロイ系（vercel・netlify・`npm run deploy`） / `rm -rf` / `.env.local` の表示 /
   `reset_dev_database.sql` の読み取り
 
-このガードは補助であり、`docs/ai-development-rules.md` の「必ず止まって確認すること」の判断を
+このガードは補助であり、`docs/ai-development-workflow.md` の「必ず停止する条件」の判断を
 置き換えるものではない。列挙外でも破壊的・不可逆・本番影響のある操作は自分で立ち止まる。
 
 ## 変えてはいけないこと（要約）

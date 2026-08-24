@@ -24,7 +24,8 @@ model: inherit
 - `docs/product-charter.md`：変えてはいけない設計思想
 - `docs/system-design.md`：技術構成・DB構成・`dataAdapter.js` の役割
 - `docs/current-status.md`：既知の課題・矛盾（同じ問題が既知でないか先に確認する）
-- `docs/ai-development-rules.md`：事実と推測を分けるルール
+- `docs/ai-development-workflow.md`：事実と推測を分けるルール／停止時の報告の書き方
+- `docs/project-profile.md`：このリポジトリ固有の事実・既知制約（先に確認して再調査を避ける）
 
 ## 調査の進め方
 

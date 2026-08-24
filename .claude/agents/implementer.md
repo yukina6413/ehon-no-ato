@@ -26,8 +26,11 @@ model: inherit
   データ取得は必ず `dataAdapter.js` 経由）に従う。
 - 新しいデータ取得処理を追加するときは `dataAdapter.js` にmock分岐・supabase分岐の
   両方を実装する。
-- `git push`、Supabase migrationの実行、破壊的なGit操作は行わない
-  （`docs/ai-development-rules.md` の「必ず止まって確認すること」を参照）。
+- `docs/ai-development-workflow.md` の**「必ず停止する条件」**に当たったら、
+  修正を重ねずその場で止めて報告する（migration・RLS変更・認証方式変更・
+  既存データの削除や一括変換・後方互換性を壊す変更・データ損失の可能性・
+  実環境での想定外の構造差異 等）。停止時の報告の書き方も同章に従う。
+- `git push`、Supabase migrationの実行、破壊的なGit操作は行わない。
 - 修正後は必ず `git diff` で差分を確認し、意図しない変更が混ざっていないか見る。
 
 ## 報告に含めること

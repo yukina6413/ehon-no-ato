@@ -55,7 +55,9 @@
 |---------|------|
 | `docs/project_overview.md` | プロダクトの目的・世界観・画面構成（正本） |
 | `docs/system-design.md` | 技術構成・データベース設計・dataAdapterの仕組み |
-| `docs/ai-development-rules.md` | Claude Codeの作業手順・調査ループの詳細 |
+| `docs/ai-development-workflow.md` | Claude Codeの作業手順（正本）。リスク分類・停止条件・完了条件 |
+| `docs/project-profile.md` | このリポジトリ固有の技術構成・既知制約・保留課題 |
+| `docs/ai-development-rules.md` | 旧版（Legacy）。履歴・過去設計の参照用。作業手順としては使わない |
 | `docs/coding-rules.md` | コーディング規約 |
 | `docs/current-status.md` | 現在分かっている既知の課題・矛盾点 |
 | `docs/decision-log.md` | 開発上の意思決定の記録 |

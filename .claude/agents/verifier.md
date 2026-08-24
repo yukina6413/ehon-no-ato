@@ -38,4 +38,5 @@ npm run build
 - 実行したコマンドと成否（成功/失敗）
 - 失敗した場合のエラー要約
 - 既存機能への影響の見立て（確認できたこと／確認できなかったこと）
-- 完了条件（`docs/ai-development-rules.md` 参照）を満たしているかのチェック結果
+- `docs/ai-development-workflow.md` の **Definition of Done** を満たしているかのチェック結果
+  （正常系・エラー系／**次回利用テスト**／**回帰確認**／**mock → 実環境**の順序）
