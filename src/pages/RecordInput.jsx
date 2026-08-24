@@ -457,7 +457,7 @@ export default function RecordInput() {
       // stateId が無い導線（書名検索・自分が追加した作品・本棚など）では
       // pre も空配列になり、practice_log_states は作られない。
       const preStateIds = form.stateId ? [form.stateId] : []
-      await savePracticeLog(
+      const result = await savePracticeLog(
         overrideBookId ? { ...form, bookId: overrideBookId } : form,
         preStateIds,
         [],
@@ -470,11 +470,14 @@ export default function RecordInput() {
             const [, m, day] = (form.dateManual || '').split('-')
             return m && day ? `${parseInt(m)}月${parseInt(day)}日` : ''
           })()
+      // 記録本体は保存できているので、保存し直しは求めない（二重記録を防ぐ）。
+      // ただし子どもの姿を残せなかったことは隠さず、完了画面で簡潔に伝える。
       navigate('/record-complete', {
         state: {
           bookTitle: form.title || '（タイトルなし）',
           dateStr,
           ageGroup: formatAgeGroups(form.ages),   // 複数選んだときは「3・4歳児」と出す
+          stateLinkFailed: result?.stateLinksSaved === false,
         },
       })
     } catch (err) {

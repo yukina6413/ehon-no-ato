@@ -59,15 +59,17 @@ describe('savePracticeLog：子どもの姿の引き継ぎ（mockモード）', 
 const BOOK_UUID  = '22222222-0000-0000-0000-000000000002'
 const STATE_UUID = '11111111-0000-0000-0000-000000000001'
 
-function makeSupabaseMock({ statesError = null } = {}) {
+function makeSupabaseMock({ statesError = null, logError = null } = {}) {
   const inserts = []
+  const deletes = []
   function builder(table) {
     const b = {
       select: () => b,
       eq:     () => b,
       limit:  () => b,
-      single: async () => ({ data: { id: 'log-1' }, error: null }),
+      single: async () => ({ data: logError ? null : { id: 'log-1' }, error: logError }),
       insert: (rows) => { inserts.push({ table, rows }); return b },
+      delete: () => { deletes.push(table); return b },
       then: (resolve) => {
         if (table === 'practice_log_states') {
           return resolve({ data: null, error: statesError })
@@ -77,7 +79,7 @@ function makeSupabaseMock({ statesError = null } = {}) {
     }
     return b
   }
-  return { supabase: { from: t => builder(t) }, inserts }
+  return { supabase: { from: t => builder(t) }, inserts, deletes }
 }
 
 describe('savePracticeLog：子どもの姿の引き継ぎ（supabaseモード）', () => {
@@ -120,10 +122,35 @@ describe('savePracticeLog：子どもの姿の引き継ぎ（supabaseモード�
     expect(mock.inserts.some(i => i.table === 'practice_log_states')).toBe(false)
   })
 
-  it('★ 姿の保存に失敗しても、記録そのものは成功させる（二重記録を防ぐ）', async () => {
-    const { savePracticeLog } = await load({ statesError: { message: 'RLS denied' } })
-    // 例外を投げない＝利用者が保存し直して practice_logs が二重に増えることがない
-    await expect(savePracticeLog(UUID_FORM, [STATE_UUID], [])).resolves.toBe('log-1')
+  it('★ ① 完全成功：本体も紐づけも保存できたら stateLinksSaved = true', async () => {
+    const { savePracticeLog } = await load()
+    const r = await savePracticeLog(UUID_FORM, [STATE_UUID], [])
+    expect(r).toEqual({ logId: 'log-1', stateLinksSaved: true })
+  })
+
+  it('★ ② 部分成功：紐づけだけ失敗しても例外にせず、失敗を伝える', async () => {
+    const { mock, savePracticeLog } = await load({ statesError: { message: 'RLS denied' } })
+    const r = await savePracticeLog(UUID_FORM, [STATE_UUID], [])
+
+    // 例外を投げない＝画面が保存失敗に見えず、利用者が保存し直すこともない
+    expect(r.logId).toBe('log-1')
+    expect(r.stateLinksSaved).toBe(false)     // 黙って捨てず、呼び出し側へ伝える
+    // practice_logs は1件のまま。帳尻合わせの削除も、作り直しもしない
+    expect(mock.inserts.filter(i => i.table === 'practice_logs')).toHaveLength(1)
+    expect(mock.deletes).toEqual([])
+  })
+
+  it('★ ③ 本体失敗：従来どおり例外にする', async () => {
+    const { savePracticeLog } = await load({ logError: { message: 'insert failed' } })
+    await expect(savePracticeLog(UUID_FORM, [STATE_UUID], [])).rejects.toBeTruthy()
+  })
+
+  it('★ ④ 姿が無い導線は、紐づけを試さず完全成功にする（警告を出さない）', async () => {
+    const { mock, savePracticeLog } = await load()
+    const r = await savePracticeLog(UUID_FORM)
+
+    expect(r.stateLinksSaved).toBe(true)
+    expect(mock.inserts.some(i => i.table === 'practice_log_states')).toBe(false)
   })
 
   it('post は今回使わない（読んだ後の姿を入力させない）', async () => {

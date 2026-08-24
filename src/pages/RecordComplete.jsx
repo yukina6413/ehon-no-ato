@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Check, Sparkles } from 'lucide-react'
+import { Check, Sparkles, AlertCircle } from 'lucide-react'
 
 export default function RecordComplete() {
   const navigate = useNavigate()
@@ -8,6 +8,9 @@ export default function RecordComplete() {
   const bookTitle = state?.bookTitle || '絵本'
   const dateStr   = state?.dateStr   || ''
   const ageGroup  = state?.ageGroup  || ''
+  // 記録は保存できたが、選んだときの子どもの姿だけ残せなかったとき。
+  // 保存し直しは不要なので、やり直しを促す文言にはしない。
+  const stateLinkFailed = state?.stateLinkFailed === true
 
   const subtitle = [bookTitle, dateStr, ageGroup].filter(Boolean).join(' ・ ')
 
@@ -24,7 +27,15 @@ export default function RecordComplete() {
       </div>
 
       {/* ── AIサマリーカード（プレースホルダー） ── */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4 pb-4 flex flex-col gap-3">
+        {stateLinkFailed && (
+          <div className="bg-[#FDF6E7] border border-[#EAD9B8] rounded-2xl px-4 py-3 flex gap-2.5">
+            <AlertCircle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-[#5F5E5A] leading-relaxed">
+              記録は保存されました。ただし、選んだときの子どもの姿を残せませんでした。
+            </p>
+          </div>
+        )}
         <div className="bg-white border border-[#DCE4D9] rounded-2xl overflow-hidden">
           <div className="bg-[#EAF5EC] px-4 py-3 flex items-center gap-2.5">
             <div className="w-6 h-6 rounded-full bg-green-700 flex items-center justify-center flex-shrink-0">

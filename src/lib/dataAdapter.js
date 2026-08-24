@@ -350,8 +350,16 @@ export async function findBooksByTitle(title) {
 }
 
 // ──── 実践記録：保存 ────
+// 返り値は { logId, stateLinksSaved } の3状態を表す。
+//   ・完全成功            … logId あり / stateLinksSaved = true
+//   ・本体成功＋紐づけ失敗 … logId あり / stateLinksSaved = false（部分成功）
+//   ・本体失敗            … 例外を投げる（従来どおり）
+// 「子どもの姿」の紐づけは補助情報なので、失敗しても記録本体は失わせない。
+// ただし黙って捨てず、呼び出し側が利用者に伝えられるようにする。
 export async function savePracticeLog(formData, preStateIds = [], postStateIds = []) {
-  if (isMock) return saveMockPracticeLog(formData, preStateIds, postStateIds)
+  if (isMock) {
+    return { logId: saveMockPracticeLog(formData, preStateIds, postStateIds), stateLinksSaved: true }
+  }
   requireSupabase()
 
   const pad = n => String(n).padStart(2, '0')
@@ -418,17 +426,23 @@ export async function savePracticeLog(formData, preStateIds = [], postStateIds =
     ...(preStateIds  ?? []).map(sid => ({ log_id: logData.id, state_id: sid, phase: 'pre'  })),
     ...(postStateIds ?? []).map(sid => ({ log_id: logData.id, state_id: sid, phase: 'post' })),
   ]
+  // 紐づけを試していないとき（姿を経ていない導線）は、成功として扱う
+  let stateLinksSaved = true
   if (stateRows.length > 0) {
     const { error: statesErr } = await supabase
       .from('practice_log_states')
       .insert(stateRows)
-    // ここで例外にしない。記録本体（practice_logs）はすでに保存できている。
-    // 失敗を投げると画面にエラーが出て利用者が保存し直し、記録が二重に増えてしまう。
-    // 姿の紐づけは補助情報なので、取りこぼしてもその日の記録は失わせない。
-    if (statesErr) console.error('子どもの姿の紐づけを保存できませんでした:', statesErr)
+    if (statesErr) {
+      // ここで例外にしない。記録本体（practice_logs）はすでに保存できている。
+      // 投げると画面には保存失敗と映り、利用者が保存し直して記録が二重に増える。
+      // 保存済みの記録を消して帳尻を合わせることもしない（入力を失わせない）。
+      // 代わりに部分成功として返し、呼び出し側から利用者へ伝える。
+      console.error('子どもの姿の紐づけを保存できませんでした:', statesErr)
+      stateLinksSaved = false
+    }
   }
 
-  return logData.id
+  return { logId: logData.id, stateLinksSaved }
 }
 
 // ──── 実践記録：一覧取得 ────
